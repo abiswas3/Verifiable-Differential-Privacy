@@ -1,0 +1,17 @@
+[package]
+name = "dp_client"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ari Biswas <aribiswas3@gmail.com>"]
+description = "A pure-Rust implementation of a dp client as described in our paper CITE LINK"
+keywords = [
+  "secret-sharing",
+  "Shamir",
+  "cryptography",
+  "secure-computation",
+  "mpc",
+  "differential privacy"
+]
+[dependencies]
+rand = "0.8.5"
+primal = { version = "0.2", optional = true }
