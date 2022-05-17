@@ -18,7 +18,7 @@ impl AdditiveSecretSharing {
         let range = Uniform::from(0..self.prime-1);
         let mut vals: Vec<i64> = rand::thread_rng().sample_iter(&range).take(self.num_shares-1).collect();
         let sum: i64 = vals.iter().sum();
-        let last_share: i64 = (secret - sum) % self.prime;
+        let last_share: i64 = (secret - sum).rem_euclid(self.prime);
         vals.push(last_share);
         return vals;
     }
@@ -44,7 +44,7 @@ impl PackedAdditiveSecretSharing{
         let range = Uniform::from(0..self.prime-1);
         let mut vals: Vec<i64> = rand::thread_rng().sample_iter(&range).take(self.num_shares-1).collect();
         let sum: i64 = vals.iter().sum();
-        let last_share: i64 = (secret - sum) % self.prime;
+        let last_share: i64 = (secret - sum).rem_euclid(self.prime);
         vals.push(last_share);
         return vals;
     }
