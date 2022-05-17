@@ -14,4 +14,10 @@ keywords = [
 ]
 [dependencies]
 rand = "0.8.5"
-primal = { version = "0.2", optional = true }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "my_benchmark"
+harness = false

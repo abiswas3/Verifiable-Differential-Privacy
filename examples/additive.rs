@@ -7,8 +7,6 @@ fn main(){
         prime: 41,
         dimension: 3,
     };
-    
-
     let random_secrets: Vec<i64> = vec![1, 3, 5];
     let shares = client.packed_share(&random_secrets);
 
