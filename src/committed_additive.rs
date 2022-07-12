@@ -13,6 +13,12 @@ pub struct CommitedAdditiveSecretSharing {
     ctx: BigNumContext,    
 }
 
+pub struct Share{
+    pub commitments: Vec<BigNum>,
+    pub randomness: Vec<BigNum>,
+    pub shares: Vec<BigNum>,
+}
+
 fn gen_random(limit: &BigNum) -> Result<BigNum, ErrorStack> {
     // generate random bignum between 1, limit-1
     let one = BigNum::from_u32(1)?;
@@ -67,12 +73,19 @@ impl CommitedAdditiveSecretSharing{
     }
 
 
-    pub fn share(&mut self, _secret: u32)->Vec<BigNum>{
+    pub fn share(&mut self, _secret: u32)->Share{
 
         let mut shares = Vec::new();
+        let mut commitments = Vec::new();
+        let mut randomness = Vec::new();
+
         for _ in 1..(self.num_shares){            
-            shares.push(gen_random(&self.q).unwrap());
-            
+            let tmp =gen_random(&self.q).unwrap(); 
+            let (com, r) = self.commit(&tmp).unwrap();
+
+            shares.push(tmp);
+            commitments.push(com);
+            randomness.push(r); 
         }
         
         let secret = BigNum::from_u32(_secret).unwrap();
@@ -80,8 +93,15 @@ impl CommitedAdditiveSecretSharing{
         let mut last_share = BigNum::new().unwrap();
         _ = last_share.mod_sub(&secret, &total, &self.q, &mut self.ctx);
         
+        let (com, r) = self.commit(&last_share).unwrap(); // FIX THIS
         shares.push(last_share);
-        return shares;
+        commitments.push(com);
+        randomness.push(r); 
+
+        return Share{commitments: commitments, 
+            randomness: randomness,
+            shares: shares
+        };
     }
 
     pub fn reconstruct(&mut self, shares: Vec<BigNum>)->BigNum{
@@ -93,117 +113,56 @@ impl CommitedAdditiveSecretSharing{
     }
 
 
-    // fn helper(&mut self, x: u32, r: &BigNum) -> Result<BigNum, ErrorStack> {
-    //     // returns g^x1h^r
-    //     let x1 = BigNum::from_u32(x)?;
-    //     let mut c = BigNum::new()?;
-    //     let mut tmp3 = BigNum::new()?;
-    //     let mut tmp4 = BigNum::new()?;
-    //     tmp3.mod_exp(&self.g, &x1, &self.q, &mut self.ctx)?;
-    //     tmp4.mod_exp(&self.h, r, &self.q, &mut self.ctx)?;
-    //     c.mod_mul(&tmp3, &tmp4, &self.q, &mut self.ctx)?;
-    //     return Ok(c);
-    // }    
+    fn helper(&mut self, x1: &BigNum, r: &BigNum) -> Result<BigNum, ErrorStack> {
+        // returns g^x1h^r
+        
+        let mut c = BigNum::new()?;
+        let mut tmp3 = BigNum::new()?;
+        let mut tmp4 = BigNum::new()?;
+        tmp3.mod_exp(&self.g, &x1, &self.q, &mut self.ctx)?;
+        tmp4.mod_exp(&self.h, r, &self.q, &mut self.ctx)?;
+        c.mod_mul(&tmp3, &tmp4, &self.q, &mut self.ctx)?;
+        return Ok(c);
+    }  
+    
+    pub fn commit(&mut self, x: &BigNum) -> Result<(BigNum, BigNum), ErrorStack> {
+        let r = gen_random(&self.q)?;
+        let c = self.helper(&x, &r)?;
+        Ok((c, r))
+    }
+
+    pub fn mult_commitments(&mut self, cm: &[&BigNum]) -> Result<BigNum, ErrorStack> {
+        // Multiply arry of commitments cm
+        let res = cm.iter().fold(BigNum::from_u32(1)?, |acc, x| &acc * *x);
+        let mut tmp = BigNum::new()?;
+        tmp.nnmod(&res, &self.q, &mut self.ctx)?;
+        Ok(tmp)
+    }
+
+    pub fn open(&mut self, c: &BigNum, x: &BigNum, args: &[&BigNum]) -> Result<bool, ErrorStack> {
+        // c: commitment
+        // x: the secret
+        // args: array of randomness
+        let total = args.iter().fold(BigNum::new()?, |acc, x| &acc + *x);
+        let res = self.helper(&x, &total)?;
+        Ok(&res == c)
+    }    
 }
 
-// impl AdditiveSecretSharing {
-//     pub fn share(&self, _secret: i64) -> Vec<i64> {
-//         // Sample self.num_shares nuber of random numbers
-//         let secret = _secret.rem_euclid(self.prime);
-//         return vals;
-//     }
-
-//     pub fn reconstruct(&self, shares: &Vec<i64>) -> i64 {
-//         let sum: i64 = shares.iter().sum();
-//         return sum.rem_euclid(self.prime);
-//     }
-// }
-
-// pub struct PackedAdditiveSecretSharing {
-//     pub num_shares: usize,
-//     pub prime: i64,
-//     pub dimension: usize,
-// }
-
-// impl PackedAdditiveSecretSharing {
-//     pub fn share(&self, _secret: i64) -> Vec<i64> {
-//         // Sample self.num_shares nuber of random numbers
-//         let secret = _secret.rem_euclid(self.prime);
-//         let range = Uniform::from(0..self.prime - 1);
-//         let mut vals: Vec<i64> = rand::thread_rng()
-//             .sample_iter(&range)
-//             .take(self.num_shares - 1)
-//             .collect();
-//         let sum: i64 = vals.iter().sum();
-//         let last_share: i64 = (secret - sum).rem_euclid(self.prime);
-//         vals.push(last_share);
-//         return vals;
-//     }
-
-//     pub fn reconstruct(&self, shares: &Vec<i64>) -> i64 {
-//         let sum: i64 = shares.iter().sum();
-//         return sum.rem_euclid(self.prime);
-//     }
-
-//     pub fn packed_share(&self, secrets: &Vec<i64>) -> Vec<Vec<i64>> {
-//         let mut packed_shares: Vec<Vec<i64>> = Vec::new();
-
-//         for _secret in secrets {
-//             let _secret: i64 = *_secret;
-//             let shares: Vec<i64> = self.share(_secret);
-//             packed_shares.push(shares);
-//         }
-//         return packed_shares;
-//     }
-
-//     pub fn packed_reconstruct(&self, shares: &Vec<Vec<i64>>) -> Vec<i64> {
-//         let mut secrets: Vec<i64> = Vec::new();
-//         for _share in shares {
-//             let secret = self.reconstruct(_share);
-//             secrets.push(secret);
-//         }
-//         return secrets;
-//     }
-// }
 
 #[test]
 fn test_additive_secret_sharing() {
-    let mut commitment = CommitedAdditiveSecretSharing::new(512, 10).unwrap();
-    let mut msg1 = 12;
-    let mut shares = commitment.share(msg1);
-    let mut msg1_hat = commitment.reconstruct(shares);
-    assert_eq!(msg1_hat, BigNum::from_u32(msg1).unwrap());
 
-    msg1 = 10231;
-    shares = commitment.share(msg1);
-    msg1_hat = commitment.reconstruct(shares);
-    assert_eq!(msg1_hat, BigNum::from_u32(msg1).unwrap());
+    let mut ss = CommitedAdditiveSecretSharing::new(512, 10).unwrap();
+    let msg1 = 12;
+    let shares1 = ss.share(msg1);
+    for i in 0..10{
+        let answer = ss.open(&shares1.commitments[i], &shares1.shares[i], &[&shares1.randomness[i]]);
+        // println!("{}\n{}\n{}\n", , shares.commitments[i], shares.shares[i]);
+        assert_eq!(answer.unwrap(), true);
+    }  
+    assert_eq!(ss.reconstruct(shares1.shares), BigNum::from_u32(msg1).unwrap());
+    
 
 }
 
-// #[test]
-// fn test_packed_additive_secret_sharing() {
-//     let client = PackedAdditiveSecretSharing {
-//         num_shares: 10,
-//         prime: 41,
-//         dimension: 7,
-//     };
-
-//     for _ in 1..=100 {
-//         let range = Uniform::from(0..client.prime - 1);
-//         let random_secrets: Vec<i64> = rand::thread_rng()
-//             .sample_iter(&range)
-//             .take(client.dimension)
-//             .collect();
-//         let shares = client.packed_share(&random_secrets);
-//         let reconstructed_answer: Vec<i64> = client.packed_reconstruct(&shares);
-
-//         assert_eq!(random_secrets.len(), reconstructed_answer.len());
-
-//         let it = random_secrets.iter().zip(reconstructed_answer.iter());
-
-//         for (_, (x, y)) in it.enumerate() {
-//             assert_eq!(*x, *y);
-//         }
-//     }
-// }
