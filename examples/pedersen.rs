@@ -1,7 +1,7 @@
 extern crate dp_client as ss;
 
 fn main() {
-    let mut commitment = ss::pederson_additive::PedersenCommitment::new(512).unwrap();
+    let mut commitment = ss::pederson::PedersenCommitment::new(512).unwrap();
     // let mut commitment = ss:pederson_additive::PedersenCommitment::new(512).unwrap();
     println!("commitment {:#?}", commitment);
 
