@@ -3,21 +3,21 @@ use openssl::error::ErrorStack;
 // use rand::random;
 use std::ops::Rem;
 use std::fmt;
-use std::collections::HashMap;
 
 use crate::utils::{gen_random, mod_exp};
 // use crate::utils::calculate_q;
 pub struct Server{
     index: usize,
-    agg_shares: BigNum,
-    agg_randomness: BigNum,
+    pub agg_shares: BigNum,
+    pub agg_randomness: BigNum,
     num_clients: u32,
     num_servers: usize,
     pub p: BigNum,
     pub q: BigNum,
     pub g: BigNum,
     pub h: BigNum,
-    commitments: HashMap<usize, Vec<BigNum>>    
+    pub ans:BigNum,
+    commitments: Vec<Vec<BigNum>>    
 }
 
 // https://stackoverflow.com/questions/27589054/what-is-the-correct-way-to-use-lifetimes-with-a-struct-in-rust
@@ -40,14 +40,16 @@ impl Server{
         let num_clients = 0;
         let agg_shares = BigNum::new().unwrap();
         let agg_randomness = BigNum::new().unwrap();
+        let ans = BigNum::new().unwrap();
 
         let p = &BigNum::new().unwrap() + _p;
         let q = &BigNum::new().unwrap() + _q;
         let g = &BigNum::new().unwrap() + _g;
         let h = &BigNum::new().unwrap() + _h;
         
-        let mut commitments = HashMap::new();
-        Self{index, agg_shares, agg_randomness, num_clients, num_servers, p, q, g, h, commitments}
+        let commitments = Vec::new();
+        
+        Self{index, agg_shares, agg_randomness, num_clients, num_servers, p, q, g, h, commitments, ans}
     }
     pub fn verify(&mut self, broadcasted_messages: &[&BigNum])->u8{        
         //TODO: for now only include legal votes
@@ -59,28 +61,52 @@ impl Server{
     pub fn receive_share(&mut self, share: &BigNum, randomness: &BigNum, com: &BigNum, ctx: &mut BigNumContext){
 
         // Servers make sure clients are not misbehaving
-        let opened = self.open(com, share, &[randomness], ctx).unwrap();
-        assert_eq!(opened, true);
+        // let opened = self.open(com, share, &[randomness], ctx).unwrap();        
+        let res = self.helper(share, &randomness, ctx).unwrap();
+        assert_eq!(res, com + &BigNum::new().unwrap());
         
         self.agg_shares = (&self.agg_shares + share).rem(&self.q);
-        self.agg_randomness = (&self.agg_shares + randomness).rem(&self.q);             
+        self.agg_randomness = (&self.agg_randomness + randomness).rem(&self.q);             
     }
 
-    pub fn receive_commitments(&mut self, client_idx: usize, coms: &Vec<BigNum>){
+    pub fn receive_commitments(&mut self, _: usize, coms: &Vec<BigNum>){
 
-        for com in coms{
-            println!("{}", com);
+        // _ later used for client index
+        let mut coms_copy = Vec::new();
+        for (_, com) in coms.iter().enumerate(){            
+            let tmp = com + &BigNum::new().unwrap();            
+            coms_copy.push(tmp);
         }
+        self.commitments.push(coms_copy);
     }
-    fn helper(&mut self, x1: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
-        // returns g^x1h^r        
-        let tmp3 = mod_exp(&self.g, x1, &self.q, ctx).rem(&self.q);
-        let tmp4 = mod_exp(&self.h, r, &self.q, ctx).rem(&self.q);                
-        return Ok((&(tmp3) * &(tmp4)).rem(&self.q));
+
+    pub fn receive_tally_broadcast(&self, server_idx: usize, v: &BigNum, r: &BigNum, ctx: &mut BigNumContext)->bool{
+        // This is the broadcast during the tallying stage
+        let mut res = BigNum::from_u32(1).unwrap();
         
+        for com in &self.commitments{
+            res = (&res * &com[server_idx]).rem(&self.p);                    
+        }
+        
+        let ans = self.helper(v, r, ctx).unwrap();
+        assert_eq!(ans, res);
+        return ans == res;
+    }
+
+    pub fn aggregate(&mut self, v: BigNum){
+
+        self.ans = (&self.ans + &v).rem(&self.q);
+
+    }
+
+    pub fn helper(& self, x1: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
+        // returns g^x1h^r        
+        let tmp3 = mod_exp(&self.g, x1, &self.p, ctx);
+        let tmp4 = mod_exp(&self.h, r, &self.p, ctx);                
+        return Ok((&(tmp3) * &(tmp4)).rem(&self.p));        
     }  
     
-    pub fn commit(&mut self, x: &BigNum,  ctx: &mut BigNumContext) -> Result<(BigNum, BigNum), ErrorStack> {
+    pub fn commit(&self, x: &BigNum,  ctx: &mut BigNumContext) -> Result<(BigNum, BigNum), ErrorStack> {
         let r = gen_random(&self.q).unwrap();
         let c = self.helper(&x, &r, ctx)?;
         Ok((c, r))
@@ -88,18 +114,17 @@ impl Server{
 
     pub fn mult_commitments(&mut self, cm: &[&BigNum]) -> Result<BigNum, ErrorStack> {
         // Multiply arry of commitments cm
-        let res = (cm.iter().fold(BigNum::from_u32(1)?, |acc, x| &acc * *x)).rem(&self.q);
+        let res = (cm.iter().fold(BigNum::from_u32(1)?, |acc, x| &acc * *x)).rem(&self.p);
         Ok(res)
-    }
+    }    
 
-    pub fn open(&mut self, c: &BigNum, x: &BigNum, args: &[&BigNum], ctx: &mut BigNumContext) -> Result<bool, ErrorStack> {
+    pub fn open(&self, c: &BigNum, x: &BigNum, args: &[&BigNum], ctx: &mut BigNumContext) -> Result<bool, ErrorStack> {
         // c: commitment
         // x: the secret
         // args: array of randomness
-        let total = args.iter().fold(BigNum::new()?, |acc, x| &acc + *x);
-        // println!("Server: x: {}\nr: {}\n\n", x, total);
+        let total = args.iter().fold(BigNum::new()?, |acc, x| &acc + *x);        
         let res = self.helper(&x, &total, ctx)?;
-        // println!("Server: c: {}\nc_hat: {}\n\n", c, res);
+    
         Ok(&res == c)
     }  
     // pub fn verify_tally(&mut self, committments: &[&BigNum], ctx: &mut BigNumContext)->bool{        
