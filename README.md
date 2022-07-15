@@ -15,7 +15,20 @@ $ cargo --version
 cargo 1.59.0
 ```
 
-## Running a minimnal experiment
+## Committed Secret Sharing
+
+```bash
+cargo run --example simulation
+```
+
+## Verifiable Differential Privacy
+
+```bash
+cargo run --example simulation
+```
+
+
+## Running a full simulation
 
 ```bash
 cargo run --example simulation
