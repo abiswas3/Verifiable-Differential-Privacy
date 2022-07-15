@@ -3,9 +3,12 @@ use openssl::error::ErrorStack;
 // use rand::random;
 use std::ops::Rem;
 use std::fmt;
+use std::collections::HashMap;
+
 use crate::utils::{gen_random, mod_exp};
 // use crate::utils::calculate_q;
 pub struct Server{
+    index: usize,
     agg_shares: BigNum,
     agg_randomness: BigNum,
     num_clients: u32,
@@ -13,7 +16,8 @@ pub struct Server{
     pub p: BigNum,
     pub q: BigNum,
     pub g: BigNum,
-    pub h: BigNum,    
+    pub h: BigNum,
+    commitments: HashMap<usize, Vec<BigNum>>    
 }
 
 // https://stackoverflow.com/questions/27589054/what-is-the-correct-way-to-use-lifetimes-with-a-struct-in-rust
@@ -31,7 +35,7 @@ impl fmt::Display for  Server {
     }
 }
 impl Server{
-    pub fn new(num_servers: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
+    pub fn new(index: usize, num_servers: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
        
         let num_clients = 0;
         let agg_shares = BigNum::new().unwrap();
@@ -42,8 +46,8 @@ impl Server{
         let g = &BigNum::new().unwrap() + _g;
         let h = &BigNum::new().unwrap() + _h;
         
-
-        Self{agg_shares, agg_randomness, num_clients, num_servers, p, q, g, h}
+        let mut commitments = HashMap::new();
+        Self{index, agg_shares, agg_randomness, num_clients, num_servers, p, q, g, h, commitments}
     }
     pub fn verify(&mut self, broadcasted_messages: &[&BigNum])->u8{        
         //TODO: for now only include legal votes
@@ -62,7 +66,12 @@ impl Server{
         self.agg_randomness = (&self.agg_shares + randomness).rem(&self.q);             
     }
 
+    pub fn receive_commitments(&mut self, client_idx: usize, coms: &Vec<BigNum>){
 
+        for com in coms{
+            println!("{}", com);
+        }
+    }
     fn helper(&mut self, x1: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
         // returns g^x1h^r        
         let tmp3 = mod_exp(&self.g, x1, &self.q, ctx).rem(&self.q);

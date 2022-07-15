@@ -27,28 +27,28 @@ fn main(){
     
     // CREATING SERVERS
     let mut agg = Vec::new();
-    for _ in 0..num_shares{
-        agg.push(Server::new(num_shares, &public_param.p, &public_param.q, &public_param.g, &public_param.h));
+    for k in 0..num_shares{
+        agg.push(Server::new(k, num_shares, &public_param.p, &public_param.q, &public_param.g, &public_param.h));
     }
     
     
     let mut sum_of_inputs = 0;
-    for _ in 0..num_clients{
+    for client_idx in 0..num_clients{
         let mut client = ss::client::Client::new(num_shares, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
         let msg = generate_random_vote(num_candidates);
         sum_of_inputs += msg;
         let shares = client.share(msg, &mut public_param.ctx);
 
         
-        for i in 0..num_shares{
-            if i == 0{
-                println!("{}", agg[i]);
-            }
+        for sever_idx in 0..num_shares{
+            // WANT EACH SERVER TO KEEP A COPY OF THE COMMITMENTS for each client
+
             // let tmp = ss.helper(&shares.shares[i], &shares.randomness[i]).unwrap();
             // println!("CLIENT Commitment: {} Calc: {}^{}*{}^{}={}", shares.commitments[i], ss.g, shares.shares[i], ss.h, shares.randomness[i], tmp);
             // let answer = ss.open(&shares.commitments[i], &shares.shares[i], &[&shares.randomness[i]]);
             // assert_eq!(answer.unwrap(), true);            
-            agg[i].receive_share(&shares.shares[i], &shares.randomness[i], &shares.commitments[i], &mut public_param.ctx);
+            agg[sever_idx].receive_share(&shares.shares[sever_idx], &shares.randomness[sever_idx], &shares.commitments[sever_idx], &mut public_param.ctx);
+            agg[sever_idx].receive_commitments(client_idx, &&shares.commitments);
         }  
         break;
     }
