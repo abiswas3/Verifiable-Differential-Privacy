@@ -2,7 +2,7 @@
 
 Code for our paper **CITE**.
 
-**NOTE: ** This is not production ready code, used only for prototyping and generating numbers reported in the paper. To reproduce expriments in the paper see instructions below.
+**NOTE:** This is not production ready code, used only for prototyping and generating numbers reported in the paper. To reproduce expriments in the paper see instructions below.
 
 ## Getting Started 
 
