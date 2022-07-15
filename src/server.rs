@@ -7,7 +7,6 @@ use std::fmt;
 use crate::utils::{gen_random, mod_exp};
 // use crate::utils::calculate_q;
 pub struct Server{
-    index: usize,
     pub agg_shares: BigNum,
     pub agg_randomness: BigNum,
     num_clients: u32,
@@ -35,7 +34,7 @@ impl fmt::Display for  Server {
     }
 }
 impl Server{
-    pub fn new(index: usize, num_servers: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
+    pub fn new(num_servers: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
        
         let num_clients = 0;
         let agg_shares = BigNum::new().unwrap();
@@ -49,7 +48,7 @@ impl Server{
         
         let commitments = Vec::new();
         
-        Self{index, agg_shares, agg_randomness, num_clients, num_servers, p, q, g, h, commitments, ans}
+        Self{agg_shares, agg_randomness, num_clients, num_servers, p, q, g, h, commitments, ans}
     }
     pub fn verify(&mut self, broadcasted_messages: &[&BigNum])->u8{        
         //TODO: for now only include legal votes

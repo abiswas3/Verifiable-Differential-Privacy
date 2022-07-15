@@ -16,35 +16,19 @@ fn generate_random_vote(num_candidates: u32)->u32{
 }
 fn main(){
 
-    
-
     // Parameters 
-    let security_parameter = 8;
+    let security_parameter = 512;
     let num_candidates = 2; // Singe dim bin mean estimation for now
     let num_shares = 5; // num_servers
     let num_clients = 100;
 
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
-
-    // GENERATOR DEBUG
-    // let mut big_i = BigNum::new().unwrap();
-    // let mut generator = Vec::new();
-    // while big_i < public_param.q{        
-    //     let mut tmp = BigNum::new().unwrap();
-    //     _ = tmp.mod_exp(&public_param.g, &big_i, &public_param.p, &mut public_param.ctx);        
-    //     generator.push(tmp);
-    //     big_i = &big_i + &BigNum::from_u32(1).unwrap();
-    // }
-    // generator.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    println!("{}\n\n", public_param);
-    // for (i, k) in generator.iter().enumerate(){
-    //     println!(" {}:{}", i, k);
-    // }
+    // println!("{}\n\n", public_param);
     
     // CREATING SERVERS
     let mut agg = Vec::new();
-    for k in 0..num_shares{
-        agg.push(Server::new(k, num_shares, &public_param.p, &public_param.q, &public_param.g, &public_param.h));
+    for _ in 0..num_shares{
+        agg.push(Server::new(num_shares, &public_param.p, &public_param.q, &public_param.g, &public_param.h));
     }
     
 
@@ -78,6 +62,6 @@ fn main(){
             agg[0].aggregate(v);            
         }        
     }
-    println!("HISTOGRAM: {}:{},", sum_of_inputs, agg[0].ans);
+    assert_eq!(BigNum::from_u32(sum_of_inputs).unwrap(), agg[0].ans);
 
 }
