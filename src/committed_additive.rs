@@ -1,7 +1,9 @@
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
-// use std::fmt;
+use std::fmt;
 // use rand::distributions::{Distribution, Uniform};
+use crate::utils::gen_random;
+use crate::utils::calculate_q;
 
 // TODO: Change the primes to BigNum support
 pub struct CommitedAdditiveSecretSharing {
@@ -10,38 +12,25 @@ pub struct CommitedAdditiveSecretSharing {
     pub q: BigNum,
     pub g: BigNum,
     pub h: BigNum,
-    ctx: BigNumContext,    
+    pub ctx: BigNumContext,    
 }
-
+impl fmt::Display for CommitedAdditiveSecretSharing {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Client")
+            .field("p", &self.p)
+            .field("q", &self.q)
+            .field("g", &self.g)
+            .field("h", &self.h)
+            .finish()
+    }
+}
 pub struct Share{
     pub commitments: Vec<BigNum>,
     pub randomness: Vec<BigNum>,
     pub shares: Vec<BigNum>,
 }
 
-fn gen_random(limit: &BigNum) -> Result<BigNum, ErrorStack> {
-    // generate random bignum between 1, limit-1
-    let one = BigNum::from_u32(1)?;
-    let mut r = BigNum::new()?;
-    let mut tmp1 = BigNum::new()?;
-    tmp1.checked_sub(limit, &one)?;
-    let mut tmp2 = BigNum::new()?;
-    tmp2.checked_add(&r, &one)?;
-    tmp1.rand_range(&mut r)?;
-    Ok(r)
-}
 
-
-fn calculate_q(p: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
-    // generate q = 2p + 1
-    let mut q = BigNum::new()?;
-    let one = BigNum::from_u32(1)?;
-    let two = BigNum::from_u32(2)?;
-    let mut tmp = BigNum::new()?;
-    tmp.checked_mul(p, &two, ctx)?;
-    q.checked_add(&tmp, &one)?;
-    Ok(q)
-}
 
 
 impl CommitedAdditiveSecretSharing{
@@ -52,11 +41,11 @@ impl CommitedAdditiveSecretSharing{
    
         // generate prime number with 2*security bits
         let mut p = BigNum::new()?;
-        p.generate_prime(2 * security, false, None, None)?;
+        p.generate_prime(2 * security, true, None, None)?;
 
         // calculate q from p, where q = 2p + 1
         // this ensures that every element in Z_q is a generator
-        let q = calculate_q(&p, &mut ctx)?;
+        let q = calculate_q(&p)?;
 
         // generate random g
         let g = gen_random(&p)?;
@@ -113,7 +102,7 @@ impl CommitedAdditiveSecretSharing{
     }
 
 
-    fn helper(&mut self, x1: &BigNum, r: &BigNum) -> Result<BigNum, ErrorStack> {
+    pub fn helper(&mut self, x1: &BigNum, r: &BigNum) -> Result<BigNum, ErrorStack> {
         // returns g^x1h^r
         
         let mut c = BigNum::new()?;
@@ -144,7 +133,10 @@ impl CommitedAdditiveSecretSharing{
         // x: the secret
         // args: array of randomness
         let total = args.iter().fold(BigNum::new()?, |acc, x| &acc + *x);
+        // println!("CLIENT: x: {}\nr: {}\n\n", x, total);
+
         let res = self.helper(&x, &total)?;
+        // println!("CLIENT: c: {}\nc_hat: {}\n\n", c, res);
         Ok(&res == c)
     }    
 }
