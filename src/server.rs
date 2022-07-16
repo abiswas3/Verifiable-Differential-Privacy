@@ -7,16 +7,15 @@ use std::fmt;
 use crate::utils::{gen_random, mod_exp};
 // use crate::utils::calculate_q;
 pub struct Server{
-    pub agg_shares: BigNum,
-    pub agg_randomness: BigNum,
-    num_clients: u32,
+    pub agg_shares: Vec<BigNum>,
+    pub agg_randomness: Vec<BigNum>,    
     num_servers: usize,
     pub p: BigNum,
     pub q: BigNum,
     pub g: BigNum,
     pub h: BigNum,
-    pub ans:BigNum,
-    commitments: Vec<Vec<BigNum>>    
+    pub ans:Vec<BigNum>,
+    commitments: Vec<Vec<Vec<BigNum>>>   // dxM X M : for a single dimension 
 }
 
 // https://stackoverflow.com/questions/27589054/what-is-the-correct-way-to-use-lifetimes-with-a-struct-in-rust
@@ -34,41 +33,48 @@ impl fmt::Display for  Server {
     }
 }
 impl Server{
-    pub fn new(num_servers: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
+    pub fn new(num_servers: usize, num_candidates: u32, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
        
-        let num_clients = 0;
-        let agg_shares = BigNum::new().unwrap();
-        let agg_randomness = BigNum::new().unwrap();
-        let ans = BigNum::new().unwrap();
+        let mut agg_shares = Vec::<BigNum>::with_capacity(num_candidates as usize);   
+        let mut agg_randomness = Vec::<BigNum>::with_capacity(num_candidates as usize);   
+        let mut ans = Vec::<BigNum>::with_capacity(num_candidates as usize);   
+        let mut commitments = Vec::new();
+        for _ in 0..num_candidates{
+            agg_shares.push(BigNum::new().unwrap());
+            agg_randomness.push(BigNum::new().unwrap());            
+            ans.push(BigNum::new().unwrap());
+            commitments.push(Vec::new());
+        }
 
         let p = &BigNum::new().unwrap() + _p;
         let q = &BigNum::new().unwrap() + _q;
         let g = &BigNum::new().unwrap() + _g;
         let h = &BigNum::new().unwrap() + _h;
         
-        let commitments = Vec::new();
+       
         
-        Self{agg_shares, agg_randomness, num_clients, num_servers, p, q, g, h, commitments, ans}
+        Self{agg_shares, agg_randomness, num_servers, p, q, g, h, commitments, ans}
     }
     pub fn verify(&mut self, broadcasted_messages: &[&BigNum])->u8{        
         //TODO: for now only include legal votes
         assert_eq!(broadcasted_messages.len(), self.num_servers);
-        self.num_clients = self.num_clients + 1;
         return 1;
     }
 
-    pub fn receive_share(&mut self, share: &BigNum, randomness: &BigNum, com: &BigNum, ctx: &mut BigNumContext){
+    pub fn receive_share(&mut self, dimension: usize, share: &BigNum, randomness: &BigNum, com: &BigNum, ctx: &mut BigNumContext){
 
         // Servers make sure clients are not misbehaving
         // let opened = self.open(com, share, &[randomness], ctx).unwrap();        
         let res = self.helper(share, &randomness, ctx).unwrap();
         assert_eq!(res, com + &BigNum::new().unwrap());
-        
-        self.agg_shares = (&self.agg_shares + share).rem(&self.q);
-        self.agg_randomness = (&self.agg_randomness + randomness).rem(&self.q);             
+
+        self.agg_shares[dimension] = (&self.agg_shares[dimension] + share).rem(&self.q);
+        self.agg_randomness[dimension] = (&self.agg_randomness[dimension] + randomness).rem(&self.q);             
     }
 
-    pub fn receive_commitments(&mut self, _: usize, coms: &Vec<BigNum>){
+    pub fn receive_commitments(&mut self, dimension: usize, coms: &Vec<BigNum>){
+
+        // For multi dimesion this has to be fixed (FIXME)
 
         // _ later used for client index
         let mut coms_copy = Vec::new();
@@ -76,14 +82,15 @@ impl Server{
             let tmp = com + &BigNum::new().unwrap();            
             coms_copy.push(tmp);
         }
-        self.commitments.push(coms_copy);
+
+        self.commitments[dimension].push(coms_copy);
     }
 
-    pub fn receive_tally_broadcast(&self, server_idx: usize, v: &BigNum, r: &BigNum, ctx: &mut BigNumContext)->bool{
+    pub fn receive_tally_broadcast(&self, dimension: usize, server_idx: usize, v: &BigNum, r: &BigNum, ctx: &mut BigNumContext)->bool{
         // This is the broadcast during the tallying stage
         let mut res = BigNum::from_u32(1).unwrap();
         
-        for com in &self.commitments{
+        for com in &self.commitments[dimension]{
             res = (&res * &com[server_idx]).rem(&self.p);                    
         }
         
@@ -92,9 +99,9 @@ impl Server{
         return ans == res;
     }
 
-    pub fn aggregate(&mut self, v: BigNum){
+    pub fn aggregate(&mut self, dimension: usize, v: BigNum){
 
-        self.ans = (&self.ans + &v).rem(&self.q);
+        self.ans[dimension] = (&self.ans[dimension] + &v).rem(&self.q);
 
     }
 

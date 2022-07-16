@@ -7,6 +7,7 @@ use crate::utils::{gen_random, mod_exp};
 
 pub struct Client{
     num_servers: usize,
+    num_candidates: u32,
     p: BigNum,
     q: BigNum,
     g: BigNum,
@@ -31,17 +32,35 @@ impl fmt::Display for Client {
 
 impl Client{
 
-    pub fn new(num_servers: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Client {
+    pub fn new(num_servers: usize, num_candidates: u32, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Client {
        
         let p = &BigNum::new().unwrap() + _p;
         let q = &BigNum::new().unwrap() + _q;
         let g = &BigNum::new().unwrap() + _g;
         let h = &BigNum::new().unwrap() + _h;
         
-        Self{num_servers, p, q, g, h}
+        Self{num_servers, num_candidates, p, q, g, h}
     }
 
-    pub fn share(&mut self, _secret: u32, ctx: &mut BigNumContext)->Share{
+    pub fn vote(&self, vote: u32, ctx: &mut BigNumContext)->Vec::<Share>{
+
+        if vote > self.num_candidates -1 {
+            panic!("crash and burn");
+        }
+
+        let mut encoded_vote = Vec::<Share>::with_capacity(self.num_candidates as usize);        
+        for i in 0..self.num_candidates as usize{
+            if i as u32 == vote{
+                encoded_vote.push(self.share(1, ctx));
+            }
+            else{
+                encoded_vote.push(self.share(0, ctx));
+            }            
+        }
+        return encoded_vote;
+    }
+
+    pub fn share(&self, _secret: u32, ctx: &mut BigNumContext)->Share{
 
         let mut shares = Vec::new();
         let mut commitments = Vec::new();
@@ -72,12 +91,11 @@ impl Client{
         };
     }
 
-    pub fn commit(&mut self, x: &BigNum,  ctx: &mut BigNumContext) -> Result<(BigNum, BigNum), ErrorStack> {
+    pub fn commit(&self, x: &BigNum,  ctx: &mut BigNumContext) -> Result<(BigNum, BigNum), ErrorStack> {
         let r = gen_random(&self.q).unwrap();
         let c = self.helper(&x, &r, ctx)?;
         Ok((c, r))
     }
-
 
     pub fn helper(& self, x1: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
         // returns g^x1h^r        
