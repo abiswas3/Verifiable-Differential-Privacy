@@ -110,3 +110,8 @@ impl Client{
     }    
 
 }
+
+#[test]
+fn test_additive_secret_sharing() {
+
+}

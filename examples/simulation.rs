@@ -6,7 +6,8 @@ use ss::server::Server;
 // use std::ops::Rem;
 // use openssl::bn::{Bi&gNum};
 use rand::Rng;
-// use itertools::Itertools;
+use ss::utils::{gen_random};
+
 
 fn generate_random_vote(num_candidates: u32)->u32{
 
@@ -18,9 +19,9 @@ fn main(){
 
     // Parameters 
     let security_parameter = 256;
-    let num_candidates = 1; // Singe dim bin mean estimation for now
-    let num_shares = 5; // num_servers
-    let num_clients = 10000;
+    let num_candidates = 2; // Singe dim bin mean estimation for now
+    let num_shares = 10; // num_servers
+    let num_clients = 100;
 
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
     // println!("{}\n\n", public_param);
@@ -36,30 +37,37 @@ fn main(){
     for _ in 0..num_candidates as usize{
         truth.push(0);
     }
+
+    
     // let mut sum_of_inputs = 0;
     for _ in 0..num_clients{
         let client = ss::client::Client::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
         let msg = generate_random_vote(num_candidates);
-        truth[msg as usize] +=1;
-        
+        truth[msg as usize] +=1;        
         let share_of_shares = client.vote(msg, &mut public_param.ctx);
         
-        // sum_of_inputs += msg;
+
+        // VERIFIATION CODE GOES HERE
+
+        // This is only after we have verified the shares are well formed.
+        // Client has been accepted
         for (dim, shares) in share_of_shares.iter().enumerate(){        
             for server_idx in 0..num_shares{
-                // Each server receives their share and commitment
+                // It needs to verify the code here.
                 agg[server_idx].receive_share(dim, &shares.shares[server_idx], &shares.randomness[server_idx], &shares.commitments[server_idx], &mut public_param.ctx);
                 
                 // Each server also recerives commitments for 
-                agg[server_idx].receive_commitments(dim,  &shares.commitments);
-            }                  
+                agg[server_idx].receive_commitments(dim,  &shares.commitments);                
+            }                              
         }
-        
     }
+
+    
     for i in 0..num_candidates as usize{
         println!("Total Votes for candidate: {} =  {}", i, truth[i]);
     }
     println!("====================================");
+    
     for dim in 0..num_candidates as usize{
         for server_idx in 0..num_shares{
             let v = &BigNum::new().unwrap() + &agg[server_idx].agg_shares[dim];
