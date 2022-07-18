@@ -1,24 +1,28 @@
 
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
-// use rand::random;
 use std::ops::Rem;
 use std::fmt;
 
 use crate::utils::{gen_random, mod_exp};
 // use crate::utils::calculate_q;
 pub struct Server{
-    pub agg_shares: Vec<BigNum>,
-    pub agg_randomness: Vec<BigNum>,    
+    pub agg_shares: Vec<BigNum>, // Each index corresponds to a input dimension
+    pub agg_randomness: Vec<BigNum>, // Each index corresponds to a input dimension    
+
+    pub last_received_shares: Vec<BigNum>, // Each index corresponds to a input dimension
+    pub last_received_randomness: Vec<BigNum>, // Each index corresponds to a input dimension    
     num_servers: usize,
-    pub p: BigNum,
-    pub q: BigNum,
-    pub g: BigNum,
-    pub h: BigNum,
-    pub ans:Vec<BigNum>,
-    commitments: Vec<Vec<Vec<BigNum>>>   // dxM X M : for a single dimension 
+    num_candidates: usize,
+    pub p: BigNum, // Diffie Hellman sub group G_q in Z_p*
+    pub q: BigNum, // order of diffie Hellman group G
+    pub g: BigNum, // generator for G
+    pub h: BigNum, // random element of G such that it is hard to solve h = g^\alpha for random \alpha
+    pub ans:Vec<BigNum>, // Store the final reconstructed histogram over n clients
+    pub commitments: Vec<Vec<Vec<BigNum>>>   // d x n X M : Total commitments received by a single server
 }
 
+// NOTE: 
 // https://stackoverflow.com/questions/27589054/what-is-the-correct-way-to-use-lifetimes-with-a-struct-in-rust
 // Good discussion about lifetimes of references
 
@@ -34,13 +38,21 @@ impl fmt::Display for  Server {
     }
 }
 impl Server{
-    pub fn new(num_servers: usize, num_candidates: u32, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
+    pub fn new(num_servers:usize, num_candidates: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
        
         let mut agg_shares = Vec::<BigNum>::with_capacity(num_candidates as usize);   
         let mut agg_randomness = Vec::<BigNum>::with_capacity(num_candidates as usize);   
+        
+        let mut last_received_randomness = Vec::new();
+        let mut last_received_shares = Vec::new();
+
         let mut ans = Vec::<BigNum>::with_capacity(num_candidates as usize);   
+
         let mut commitments = Vec::new();
         for _ in 0..num_candidates{
+            last_received_shares.push(BigNum::new().unwrap());
+            last_received_randomness.push(BigNum::new().unwrap());
+
             agg_shares.push(BigNum::new().unwrap());
             agg_randomness.push(BigNum::new().unwrap());            
             ans.push(BigNum::new().unwrap());
@@ -51,18 +63,16 @@ impl Server{
         let q = &BigNum::new().unwrap() + _q;
         let g = &BigNum::new().unwrap() + _g;
         let h = &BigNum::new().unwrap() + _h;
-        
-       
-        
-        Self{agg_shares, agg_randomness, num_servers, p, q, g, h, commitments, ans}
+                
+        Self{agg_shares, agg_randomness, last_received_shares, last_received_randomness,  num_servers, num_candidates, p, q, g, h, commitments, ans}
     }
 
     pub fn generate_fresh_randomness(&self)->Vec<BigNum>{
 
-        let num_candidates = self.agg_shares.len();        
+        // Randomness to verify if an input is legal or not
         let mut r_vec = Vec::new();
         // For each dim get randomness that is shared by all servers
-        for _ in 0..num_candidates{
+        for _ in 0..self.num_candidates{
             r_vec.push(gen_random(&self.q).unwrap());
         }
         return r_vec;
@@ -71,57 +81,92 @@ impl Server{
     pub fn generate_noise_shares(&self){
 
         // TODO: DP stuff
-
-        // Here the server must behave like a client 
-        // so it needs the share functionality as well        
-        // general restructuring of code can be done afterwards       
-        
-        //And it has to do it for every dimension 
-
     }
     
-    pub fn agg_verify(&self, z_i: &Vec<BigNum>, z_i_star: &Vec<BigNum>, ctx: &mut BigNumContext)->(BigNum, BigNum){
+    pub fn verify_sketching_messages(&self, server_idx:usize, r_vec: &Vec<BigNum>, z: &BigNum, z_star: &BigNum, t: &BigNum, t_star: &BigNum, ctx: &mut BigNumContext){
 
+        // This is the test to verify that the other server (given by server_idx) has sent 
+        // the appropriate messages
 
-        let z = (z_i.iter().fold(BigNum::from_u32(0).unwrap(), |acc, x| &acc + x)).rem(&self.q); 
-        let z_star = (z_i_star.iter().fold(BigNum::from_u32(0).unwrap(), |acc, x| &acc + x)).rem(&self.q);         
-        return (z, z_star);
+        let last_client_idx = self.commitments[0].len() - 1;
+        let mut commitments = Vec::new();
+        for dim in 0..self.num_candidates{            
+            let mut tmp = &BigNum::new().unwrap() + &self.commitments[dim][last_client_idx][server_idx];            
+            tmp = mod_exp(&tmp, &r_vec[dim], &self.p, ctx);
+            commitments.push(tmp);
+        }
+        let lhs = commitments.iter().fold(BigNum::from_u32(1).unwrap(), |acc, x| &acc * x).rem(&self.p);
+        let rhs = self.helper(&z, &t, ctx).unwrap();
+        assert_eq!(lhs, rhs);
+
+        
+        commitments = Vec::new();
+        for dim in 0..self.num_candidates{            
+            let mut tmp = &BigNum::new().unwrap() + &self.commitments[dim][last_client_idx][server_idx];            
+            
+            let r_squared = mod_exp(&r_vec[dim], &BigNum::from_u32(2).unwrap(), &self.q, ctx);
+
+            tmp = mod_exp(&tmp, &r_squared, &self.p, ctx);
+            commitments.push(tmp);
+        }        
+        let lhs = commitments.iter().fold(BigNum::from_u32(1).unwrap(), |acc, x| &acc * x).rem(&self.p);
+        let rhs = self.helper(&z_star, &t_star, ctx).unwrap();        
+
+        assert_eq!(lhs, rhs);
     }
 
+    pub fn sketching_test(&self, z_i: &Vec<BigNum>, z_i_star: &Vec<BigNum>, ctx: &mut BigNumContext){
 
-    // pub fn create_client_verification_message(&self, r_vec: &Vec<BigNum>,  ctx: &mut BigNumContext)->(BigNum, BigNum){        
+        // This is the polynomial test to make sure input is valid
+        // Soundness probability 2/q
+
+        // TODO: if this test fails I need to drop commitments and subtract aggregations
+        assert_eq!(z_i.len(), self.num_servers);
+
+        let z = (z_i.iter().fold(BigNum::from_u32(0).unwrap(), |acc, x| &acc + x)).rem(&self.q); 
+        let z_star = (z_i_star.iter().fold(BigNum::from_u32(0).unwrap(), |acc, x| &acc + x)).rem(&self.q);
         
-    //     assert_eq!(r_vec.len(), self.agg_shares.len());
-    //     //get dimension
-    //     let num_dims = r_vec.len();        
-    //     let mut z_i = BigNum::from_u32(0).unwrap();
-    //     let mut z_i_star = BigNum::from_u32(0).unwrap();
-
-    //     // Dot product
-    //     for i in 0..num_dims{            
-    //         let r_i_square = mod_exp(&r_vec[i], &BigNum::from_u32(2).unwrap(), &self.q, ctx);
-
-    //         // z_i = &z_i + &(&r_vec[i] * broadcasted_messages[i]).rem(&self.q);
-    //         // z_i_star = &z_i_star + &( &r_i_star * broadcasted_messages[i]).rem(&self.q);
-    //     }
+        assert_eq!(mod_exp(&z, &BigNum::from_u32(2).unwrap(), &self.q, ctx), z_star);
         
-    //     return (z_i, z_i_star);
-    // }
+    }
+
+    pub fn broadcast(&self, r_vec: &Vec<BigNum>, ctx: &mut BigNumContext)->(BigNum, BigNum, BigNum, BigNum){
+
+        // Received input shares and commitments and now the server must broadcast a message
+        // to verify if the client input is legal 
+
+        let mut z_i = BigNum::from_u32(0).unwrap();
+        let mut z_i_star = BigNum::from_u32(0).unwrap();
+        let mut t = BigNum::from_u32(0).unwrap();
+        let mut t_star = BigNum::from_u32(0).unwrap();
+        // Dot product
+        for i in 0..self.num_candidates{                
+            z_i = &z_i + &(&r_vec[i] * &self.last_received_shares[i]).rem(&self.q);
+            t = &t + &(&r_vec[i] * &self.last_received_randomness[i]).rem(&self.q);            
+            
+            let r_i_square = mod_exp(&r_vec[i], &BigNum::from_u32(2).unwrap(), &self.q, ctx);
+            z_i_star = &z_i_star + &( &r_i_square * &self.last_received_shares[i]).rem(&self.q);
+            t_star = &t_star + &(&r_i_square * &self.last_received_randomness[i]).rem(&self.q);            
+        }
+        return (z_i, z_i_star, t, t_star);
+    }
+
 
     pub fn receive_share(&mut self, dimension: usize, share: &BigNum, randomness: &BigNum, com: &BigNum, ctx: &mut BigNumContext){
 
         // Servers make sure clients are not misbehaving
-        // let opened = self.open(com, share, &[randomness], ctx).unwrap();        
         let res = self.helper(share, &randomness, ctx).unwrap();
         assert_eq!(res, com + &BigNum::new().unwrap());
     
+
+        self.last_received_shares[dimension] = share + &BigNum::new().unwrap();
+        self.last_received_randomness[dimension] = randomness + &BigNum::new().unwrap();
+
         self.agg_shares[dimension] = (&self.agg_shares[dimension] + share).rem(&self.q);
         self.agg_randomness[dimension] = (&self.agg_randomness[dimension] + randomness).rem(&self.q);             
     }
 
     pub fn receive_commitments(&mut self, dimension: usize, coms: &Vec<BigNum>){
-
-        // For multi dimesion this has to be fixed (FIXME)
 
         // _ later used for client index
         let mut coms_copy = Vec::new();
@@ -134,7 +179,9 @@ impl Server{
     }
 
     pub fn receive_tally_broadcast(&self, dimension: usize, server_idx: usize, v: &BigNum, r: &BigNum, ctx: &mut BigNumContext)->bool{
-        // This is the broadcast during the tallying stage
+        
+        // Received broadcasted messages for the tallying phase and ensures there has been no tampering
+
         let mut res = BigNum::from_u32(1).unwrap();
         
         for com in &self.commitments[dimension]{
@@ -148,8 +195,8 @@ impl Server{
 
     pub fn aggregate(&mut self, dimension: usize, v: BigNum){
 
+        // Reconsturction for additive shares.
         self.ans[dimension] = (&self.ans[dimension] + &v).rem(&self.q);
-
     }
 
     pub fn helper(& self, x1: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
@@ -180,17 +227,9 @@ impl Server{
     
         Ok(&res == c)
     }  
-    // pub fn verify_tally(&mut self, committments: &[&BigNum], ctx: &mut BigNumContext)->bool{        
-    //     let lhs = committments.iter().fold(BigNum::from_u32(1).unwrap(), |acc, x| &acc * *x).rem(&self.q);
-    //     let rhs = helper(&self.g, &self.h, &self.q, &self.agg_shares, &self.agg_randomness, ctx);
-    //     println!("{}, {}", lhs, rhs);
-    //     return rhs == lhs;
-    // }
 }
 
-
-// Need to write more tests for each function
-
+// Need to write more tests for each function (TODO: This text needs to be fixed)
 #[test]
 fn test_agg_verify() {
 
@@ -222,8 +261,7 @@ fn test_agg_verify() {
     
     // Call the aggregation function here (Need to add commitments)
     let server = Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
-    let (z_hat, z_hat_star) = server.agg_verify(&z_i, &z_i_star, &mut public_param.ctx);
+    _ = server.sketching_test(&z_i, &z_i_star, &mut public_param.ctx);
 
-    assert_eq!(truth_z, z_hat);
-    assert_eq!(truth_z_star, z_hat_star);
+    
 }

@@ -4,7 +4,6 @@ use std::fmt;
 // use rand::distributions::{Distribution, Uniform};
 use crate::utils::{gen_random, calculate_q, get_generator};
 
-// TODO: Change the primes to BigNum support
 pub struct PublicParams {
     pub num_shares: usize,
     pub p: BigNum,
@@ -12,7 +11,6 @@ pub struct PublicParams {
     pub g: BigNum,
     pub h: BigNum,
     pub ctx: BigNumContext,    
-    pub commitments: Vec<Vec<BigNum>>
 }
 impl fmt::Display for PublicParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -39,10 +37,7 @@ impl PublicParams{
         // set q = p - 1/2 and q is guaranteed to be a prime since p is a safe prime
         let q = calculate_q(&p)?;
 
-        // generate random g
-        // YOU CANNOT PICK A RANDOM G!!
-        // let g = gen_random(&p)?; // That's not how you pick a generator OH FUCK
-        // let g = BigNum::from_u32(159)?;        
+        // Get a generator for the group.
         let g = get_generator(&p, &q, &mut ctx);
         
         // generate random secret alpha
@@ -51,9 +46,8 @@ impl PublicParams{
         let mut h = BigNum::new()?;
 
         h.mod_exp(&g, &alpha, &p, &mut ctx)?;
-        let commitments = Vec::new();
-
-        Ok(Self { num_shares, p, q, g, h, ctx, commitments })
+        
+        Ok(Self { num_shares, p, q, g, h, ctx })
 
     }
 }
