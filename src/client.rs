@@ -3,7 +3,7 @@ use openssl::error::ErrorStack;
 // use rand::random;
 use std::ops::Rem;
 use std::fmt;
-use crate::utils::{gen_random, mod_exp};
+use crate::utils::{gen_random, mod_exp, print_vec};
 
 pub struct Client{
     num_servers: usize,
@@ -80,7 +80,7 @@ impl Client{
         let mut last_share = BigNum::new().unwrap();
         _ = last_share.mod_sub(&secret, &total, &self.q, ctx);
         
-        let (com, r) = self.commit(&last_share, ctx).unwrap(); // FIX THIS
+        let (com, r) = self.commit(&last_share, ctx).unwrap(); 
         shares.push(last_share);
         commitments.push(com);
         randomness.push(r); 
@@ -107,11 +107,108 @@ impl Client{
         // Multiply arry of commitments cm
         let res = (cm.iter().fold(BigNum::from_u32(1)?, |acc, x| &acc * *x)).rem(&self.p);
         Ok(res)
-    }    
+    }   
+    pub fn open(&self, c: &BigNum, x: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<bool, ErrorStack> {
+        // c: commitment
+        // x: the secret
+        // r: array of randomness
+        
+        let res = self.helper(&x, &r, ctx)?;    
+        Ok(&res == c)
+    }       
 
 }
 
 #[test]
-fn test_additive_secret_sharing() {
+pub fn test_voting(){
 
+    // Parameters 
+    let security_parameter = 4; // number bits of security to use
+    let num_candidates = 5; // M
+    let num_shares = 4; // K
+    
+
+    let mut public_param = crate::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap(); 
+    let client = Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+
+    let vote = 0;    
+    let share_of_shares = client.vote(vote, &mut public_param.ctx); // there are M commitments for K servers
+    for dim in 0..num_candidates{
+        let mut recons_share = BigNum::new().unwrap();
+        for server_idx in 0..num_shares{
+            recons_share = (&recons_share + &share_of_shares[dim].shares[server_idx]).rem(&client.q);
+        }
+        assert_eq!(vote as usize == dim, recons_share == BigNum::from_u32(1).unwrap());
+    }
+
+
+}
+
+#[test]
+#[should_panic]
+pub fn test_bad_input1(){
+    // Parameters 
+    let security_parameter = 4; // number bits of security to use
+    let num_candidates = 5; // M
+    let num_shares = 4; // K
+
+    let mut public_param = crate::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap(); 
+    let client = Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+
+    // Should crash : Client cannot vote for a candidate not in 
+    let vote = num_candidates;    
+    let _ = client.vote(vote, &mut public_param.ctx); // there are M commitments for K servers
+}
+
+#[test]
+pub fn test_commitments(){
+    // Parameters 
+    let security_parameter = 4; // number bits of security to use
+    let num_candidates = 5; // M
+    let num_shares = 4; // K
+
+    let mut public_param = crate::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap(); 
+    let client = Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+
+    // Should crash : Client cannot vote for a candidate not in 
+    let vote = 0;    
+    let share_of_shares = client.vote(vote, &mut public_param.ctx); // there are M commitments for K servers
+
+    for dim in 0..num_candidates{
+        for server_idx in 0..num_shares{
+            let shr = &share_of_shares[dim].shares[server_idx];
+            let rnd = &share_of_shares[dim].randomness[server_idx];
+            let com = &share_of_shares[dim].commitments[server_idx];
+
+            assert_eq!(true, client.open(&com, &shr, &rnd, &mut public_param.ctx).unwrap());
+        }
+    }
+    
+}
+
+#[test]
+#[should_panic]
+pub fn test_bad_commitments(){
+    // Parameters 
+    let security_parameter = 4; // number bits of security to use
+    let num_candidates = 5; // M
+    let num_shares = 4; // K
+
+    let mut public_param = crate::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap(); 
+    let client = Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+
+    // Should crash : Client cannot vote for a candidate not in 
+    let vote = 0;    
+    let share_of_shares = client.vote(vote, &mut public_param.ctx); // there are M commitments for K servers
+
+    for dim in 0..num_candidates{
+        for server_idx in 0..num_shares{
+            let shr = &share_of_shares[dim].shares[server_idx] + &BigNum::from_u32(1).unwrap();
+            let rnd = &share_of_shares[dim].randomness[server_idx];
+            let com = &share_of_shares[dim].commitments[server_idx];
+
+            assert_eq!(true, client.open(&com, &shr, &rnd, &mut public_param.ctx).unwrap());
+        }
+    }
+    
 }

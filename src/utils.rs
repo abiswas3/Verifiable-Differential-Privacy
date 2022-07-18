@@ -42,7 +42,15 @@ pub fn calculate_q(p: &BigNum) -> Result<BigNum, ErrorStack> {
     // Ok(q)
 }
 
-pub fn mod_exp(g: &BigNum, x: &BigNum,q: &BigNum, ctx: &mut BigNumContext)->BigNum{
+pub fn print_vec<T>(vec: &Vec<T>)where T: std::fmt::Display{
+    print!("[ ");
+    for elem in vec.iter(){
+        print!("{}, ", elem);
+    }
+    println!(" ]");
+}
+
+pub fn mod_exp(g: &BigNum, x: &BigNum, q: &BigNum, ctx: &mut BigNumContext)->BigNum{
     let mut tmp = BigNum::new().unwrap();
     _ = tmp.mod_exp(g, x, q, ctx).unwrap();
     return tmp;

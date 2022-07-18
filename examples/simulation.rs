@@ -1,13 +1,9 @@
 extern crate dp_client as ss;
 use openssl::bn::BigNum;
-use std::ops::Rem;
-// use openssl::bn::BigNum;
 use ss::server::Server;
-// use std::ops::Rem;
-// use openssl::bn::{Bi&gNum};
 use rand::Rng;
 
-
+// A full simulation without the DP noise 
 fn generate_random_vote(num_candidates: u32)->u32{
 
     let mut rng = rand::thread_rng();
@@ -66,7 +62,9 @@ fn main(){
         let mut broadcasted_z : Vec<BigNum> = Vec::new();
         let mut broadcasted_z_star : Vec<BigNum> = Vec::new();
         let mut broadcasted_t : Vec<BigNum> = Vec::new();
+
         let r_vec = agg[0].generate_fresh_randomness();
+        let morra_bits = agg[0].generate_fresh_morra();
         for server_idx in 0..num_shares{
             
             // For the current client each server broadcasts messages for checking
@@ -79,9 +77,10 @@ fn main(){
             broadcasted_z_star.push(z_star);
             broadcasted_t.push(t);
         }
-        
         // If this test fails: servers will adjust their shares accordingly
         _ = agg[0].sketching_test(&broadcasted_z, &broadcasted_z_star, &mut public_param.ctx);        
+        
+        // At this point it must also play the noise game for this client:
         
     }
 
@@ -95,7 +94,6 @@ fn main(){
         for server_idx in 0..num_shares{
             let v = &BigNum::new().unwrap() + &agg[server_idx].agg_shares[dim];
             let r =  &agg[server_idx].agg_randomness[dim];            
-
             agg[0].receive_tally_broadcast(dim, server_idx, &v, r, &mut public_param.ctx);
             agg[0].aggregate(dim, v);
         }

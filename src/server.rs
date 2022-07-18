@@ -1,10 +1,11 @@
 
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
+// use rand::distributions::{Bernoulli, Distribution};
 use std::ops::Rem;
 use std::fmt;
 
-use crate::utils::{gen_random, mod_exp};
+use crate::utils::{gen_random, mod_exp, print_vec};
 // use crate::utils::calculate_q;
 pub struct Server{
     pub agg_shares: Vec<BigNum>, // Each index corresponds to a input dimension
@@ -67,6 +68,23 @@ impl Server{
         Self{agg_shares, agg_randomness, last_received_shares, last_received_randomness,  num_servers, num_candidates, p, q, g, h, commitments, ans}
     }
 
+    pub fn generate_fresh_morra(&self)->Vec<u8>{
+
+        let mut morra =  Vec::new();
+        let two = BigNum::from_u32(2).unwrap(); 
+        for i in 0..self.num_candidates{
+            let tmp = gen_random(&self.q).unwrap();
+            if tmp <= &self.q / &two{
+                morra.push(1 as u8);
+            }
+            else{
+                morra.push(0 as u8);
+            }                    
+        }
+        
+        print_vec(&morra);
+        return morra;
+    }
     pub fn generate_fresh_randomness(&self)->Vec<BigNum>{
 
         // Randomness to verify if an input is legal or not
@@ -78,7 +96,7 @@ impl Server{
         return r_vec;
     }
 
-    pub fn generate_noise_shares(&self){
+    pub fn generate_noise_shares(&self, morra_noise: &Vec<u8>){
 
         // TODO: DP stuff
     }
@@ -218,13 +236,12 @@ impl Server{
         Ok(res)
     }    
 
-    pub fn open(&self, c: &BigNum, x: &BigNum, args: &[&BigNum], ctx: &mut BigNumContext) -> Result<bool, ErrorStack> {
+    pub fn open(&self, c: &BigNum, x: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<bool, ErrorStack> {
         // c: commitment
         // x: the secret
-        // args: array of randomness
-        let total = args.iter().fold(BigNum::new()?, |acc, x| &acc + *x);        
-        let res = self.helper(&x, &total, ctx)?;
-    
+        // r: array of randomness
+        
+        let res = self.helper(&x, &r, ctx)?;    
         Ok(&res == c)
     }  
 }
@@ -233,35 +250,34 @@ impl Server{
 #[test]
 fn test_agg_verify() {
 
-    use crate::public_parameters::PublicParams;
-    let security_parameter = 8;
-    let num_candidates = 2; // Doesn't play a role in this test but need it to initialise server
-    let num_shares = 10; // num_servers
-    let mut public_param = PublicParams::new(security_parameter, num_shares).unwrap();
+    // use crate::public_parameters::PublicParams;
+    // let security_parameter = 8;
+    // let num_candidates = 2; // Doesn't play a role in this test but need it to initialise server
+    // let num_shares = 10; // num_servers
+    // let mut public_param = PublicParams::new(security_parameter, num_shares).unwrap();
 
-    // agg_verify(&self, z_i: Vec<BigNum>, z_i_star: Vec<BigNum>, ctx: &mut BigNumContext)->bool
+    // // agg_verify(&self, z_i: Vec<BigNum>, z_i_star: Vec<BigNum>, ctx: &mut BigNumContext)->bool
     
-    // Creating variables to hold the true answer
-    let mut truth_z = BigNum::new().unwrap();
-    let mut truth_z_star = BigNum::new().unwrap();
+    // // Creating variables to hold the true answer
+    // let mut truth_z = BigNum::new().unwrap();
+    // let mut truth_z_star = BigNum::new().unwrap();
 
-    // Simulating the different z_i and z_star each server sends out
-    let mut z_i = Vec::new();
-    let mut z_i_star = Vec::new();
-    for _ in 0..num_shares{
-        // Each server must generate this
-        let tmp1 = gen_random(&public_param.q).unwrap();
-        let tmp2 = gen_random(&public_param.q).unwrap();
+    // // Simulating the different z_i and z_star each server sends out
+    // let mut z_i = Vec::new();
+    // let mut z_i_star = Vec::new();
+    // for _ in 0..num_shares{
+    //     // Each server must generate this
+    //     let tmp1 = gen_random(&public_param.q).unwrap();
+    //     let tmp2 = gen_random(&public_param.q).unwrap();
         
-        truth_z = (&truth_z + &tmp1).rem(&public_param.q);
-        z_i.push(tmp1);        
-        truth_z_star = (&truth_z_star + &tmp2).rem(&public_param.q);
-        z_i_star.push(tmp2);
-    }    
+    //     truth_z = (&truth_z + &tmp1).rem(&public_param.q);
+    //     z_i.push(tmp1);        
+    //     truth_z_star = (&truth_z_star + &tmp2).rem(&public_param.q);
+    //     z_i_star.push(tmp2);
+    // }    
     
-    // Call the aggregation function here (Need to add commitments)
-    let server = Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
-    _ = server.sketching_test(&z_i, &z_i_star, &mut public_param.ctx);
+    // // Call the aggregation function here (Need to add commitments)
+    // let server = Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+    // _ = server.sketching_test(&z_i, &z_i_star, &mut public_param.ctx);
 
-    
 }
