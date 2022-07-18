@@ -32,13 +32,14 @@ pub fn test_voting(){
     let mut public_param = crate::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap(); 
     let client = Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
 
-    let vote = 0;    
+    let vote = 0; // <-- Voting for the first candidate
     let share_of_shares = client.vote(vote, &mut public_param.ctx); // there are M commitments for K servers
     for dim in 0..num_candidates{
         let mut recons_share = BigNum::new().unwrap();
         for server_idx in 0..num_shares{
             recons_share = (&recons_share + &share_of_shares[dim].shares[server_idx]).rem(&client.q);
         }
+        // Check if the reconstruction is 1 only for voted canidate
         assert_eq!(vote as usize == dim, recons_share == BigNum::from_u32(1).unwrap());
     }
 }
