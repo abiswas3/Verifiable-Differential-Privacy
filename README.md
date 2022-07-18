@@ -90,12 +90,13 @@ pub fn test_commitments(){
 ```
 
 
-## Verifiable Differential Privacy
+## Server side tests
 
-```bash
-cargo run --example simulation
-```
+TODO 
 
+## How to generate plots for paper
+
+TODO
 
 ## Running a full simulation
 
