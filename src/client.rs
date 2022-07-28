@@ -3,7 +3,7 @@ use openssl::error::ErrorStack;
 // use rand::random;
 use std::ops::Rem;
 use std::fmt;
-use crate::utils::{gen_random, mod_exp, print_vec};
+use crate::utils::{gen_random, mod_exp};
 
 pub struct Client{
     num_servers: usize,

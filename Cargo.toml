@@ -17,11 +17,10 @@ rand = "0.8.5"
 optimus_prime = { git = "https://github.com/abiswas3/OptimusPrime" }
 openssl-sys = "0.9"
 openssl = "0.10"
-itertools = "*"
+time = "*"
 
 [dev-dependencies]
 criterion = "0.3"
+serde = "*"
+serde_json = "*"
 
-[[bench]]
-name = "my_benchmark"
-harness = false

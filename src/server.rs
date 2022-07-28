@@ -4,6 +4,7 @@ use openssl::error::ErrorStack;
 // use rand::distributions::{Bernoulli, Distribution};
 use std::ops::Rem;
 use std::fmt;
+use rand::Rng;
 
 use crate::utils::{gen_random, mod_exp, print_vec};
 // use crate::utils::calculate_q;
@@ -26,6 +27,14 @@ pub struct Server{
 // NOTE: 
 // https://stackoverflow.com/questions/27589054/what-is-the-correct-way-to-use-lifetimes-with-a-struct-in-rust
 // Good discussion about lifetimes of references
+
+
+pub struct Share{
+    pub commitments: Vec<BigNum>,
+    pub randomness: Vec<BigNum>,
+    pub shares: Vec<BigNum>,
+}
+
 
 
 impl fmt::Display for  Server {
@@ -68,11 +77,13 @@ impl Server{
         Self{agg_shares, agg_randomness, last_received_shares, last_received_randomness,  num_servers, num_candidates, p, q, g, h, commitments, ans}
     }
 
+
+
     pub fn generate_fresh_morra(&self)->Vec<u8>{
 
         let mut morra =  Vec::new();
         let two = BigNum::from_u32(2).unwrap(); 
-        for i in 0..self.num_candidates{
+        for _ in 0..self.num_candidates{
             let tmp = gen_random(&self.q).unwrap();
             if tmp <= &self.q / &two{
                 morra.push(1 as u8);
@@ -82,7 +93,7 @@ impl Server{
             }                    
         }
         
-        print_vec(&morra);
+        // print_vec(&morra);
         return morra;
     }
     pub fn generate_fresh_randomness(&self)->Vec<BigNum>{
@@ -99,6 +110,7 @@ impl Server{
     pub fn generate_noise_shares(&self, morra_noise: &Vec<u8>){
 
         // TODO: DP stuff
+        assert_eq!(morra_noise.len(), 1);
     }
     
     pub fn verify_sketching_messages(&self, server_idx:usize, r_vec: &Vec<BigNum>, z: &BigNum, z_star: &BigNum, t: &BigNum, t_star: &BigNum, ctx: &mut BigNumContext){
@@ -169,6 +181,39 @@ impl Server{
         return (z_i, z_i_star, t, t_star);
     }
 
+    pub fn adapt_shares_for_morra(&mut self, dimension: usize, ctx: &mut BigNumContext){
+
+        // Always on the last guy
+        // self.last_received_shares[dimension] = (&BigNum::from_u32(1).unwrap() - &self.last_received_shares[dimension]).rem(&self.q);
+        // self.last_received_randomness[dimension] = (&BigNum::from_u32(1).unwrap() - &self.last_received_randomness[dimension]).rem(&self.q);
+        let mut tmp1 = BigNum::new().unwrap();
+        let one = BigNum::from_u32(1).unwrap();
+        let two = BigNum::from_u32(2).unwrap();
+        _ = tmp1.mod_sub(&one, &self.agg_shares[dimension], &self.q, ctx);
+
+        self.agg_shares[dimension] = &(&two*&tmp1) - &one;
+
+        let mut tmp2 = BigNum::new().unwrap();
+        _ = tmp2.mod_sub(&one, &self.agg_randomness[dimension], &self.q, ctx);
+        self.agg_randomness[dimension] = &(&two*&tmp2) - &one;             
+    }    
+
+    pub fn adapt_coms(&mut self, dimension: usize, gen_server_idx: usize, ctx: &mut BigNumContext){
+
+        
+        let num_clients_so_far = self.commitments[dimension].len() - 1;
+        let old_com = &self.commitments[dimension][num_clients_so_far][gen_server_idx];
+        // println!("Before : {}", old_com);
+        
+        let mut tmp = BigNum::new().unwrap();
+        _ = tmp.mod_inverse(old_com, &self.p, ctx);
+
+        // gh/(old_com)
+        self.commitments[dimension][num_clients_so_far][gen_server_idx] = (&(&self.g*&self.h)*(&tmp)).rem(&self.p);
+
+        // println!("AFTER : {}", &self.commitments[dimension][num_clients_so_far][gen_server_idx]);        
+
+    }
 
     pub fn receive_share(&mut self, dimension: usize, share: &BigNum, randomness: &BigNum, com: &BigNum, ctx: &mut BigNumContext){
 
@@ -243,7 +288,64 @@ impl Server{
         
         let res = self.helper(&x, &r, ctx)?;    
         Ok(&res == c)
-    }  
+    }
+
+    pub fn share(&self, _secret: u32, ctx: &mut BigNumContext)->Share{
+
+        let mut shares = Vec::new();
+        let mut commitments = Vec::new();
+        let mut randomness = Vec::new();
+
+        for _ in 1..(self.num_servers){            
+            let tmp = gen_random(&self.q).unwrap(); // get a random value for share
+            let (com, r) = self.commit(&tmp, ctx).unwrap(); // commit share
+
+            shares.push(tmp);
+            commitments.push(com);
+            randomness.push(r); 
+        }
+        
+        let secret = BigNum::from_u32(_secret).unwrap();
+        let total = shares.iter().fold(BigNum::new().unwrap(), |acc, x| &acc + x);
+        let mut last_share = BigNum::new().unwrap();
+        _ = last_share.mod_sub(&secret, &total, &self.q, ctx);
+        
+        let (com, r) = self.commit(&last_share, ctx).unwrap(); 
+        shares.push(last_share);
+        commitments.push(com);
+        randomness.push(r); 
+
+        return Share{commitments: commitments, 
+            randomness: randomness,
+            shares: shares
+        };
+    }
+
+    pub fn generate_shares_for_low_qual_bit(&self, ctx: &mut BigNumContext)->Vec::<Share>{
+
+
+        let vote = self.generate_random_vote(self.num_candidates as u32);
+
+        let mut encoded_vote = Vec::<Share>::with_capacity(self.num_candidates as usize);        
+        for i in 0..self.num_candidates as usize{
+            if i as u32 == vote{
+                encoded_vote.push(self.share(1, ctx));
+            }
+            else{
+                encoded_vote.push(self.share(0, ctx));
+            }            
+        }
+        return encoded_vote;
+    }    
+    
+    fn generate_random_vote(&self, num_candidates: u32)->u32{
+
+        let mut rng = rand::thread_rng();
+    
+        return rng.gen_range(0..num_candidates);
+    }
+
+
 }
 
 // Need to write more tests for each function (TODO: This text needs to be fixed)

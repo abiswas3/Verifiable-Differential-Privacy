@@ -6,4 +6,5 @@ pub mod server;
 pub mod client;
 pub mod utils;
 pub mod public_parameters;
-// pub mod sketching;
+pub mod simple_client;
+pub mod simple_server;

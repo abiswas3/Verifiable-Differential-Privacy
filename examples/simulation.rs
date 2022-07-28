@@ -2,6 +2,7 @@ extern crate dp_client as ss;
 use openssl::bn::BigNum;
 use ss::server::Server;
 use rand::Rng;
+use ss::utils::{print_vec};
 
 // A full simulation without the DP noise 
 fn generate_random_vote(num_candidates: u32)->u32{
@@ -64,7 +65,7 @@ fn main(){
         let mut broadcasted_t : Vec<BigNum> = Vec::new();
 
         let r_vec = agg[0].generate_fresh_randomness();
-        let morra_bits = agg[0].generate_fresh_morra();
+        let _ = agg[0].generate_fresh_morra();
         for server_idx in 0..num_shares{
             
             // For the current client each server broadcasts messages for checking
@@ -84,12 +85,9 @@ fn main(){
         
     }
 
-    
-    for i in 0..num_candidates as usize{
-        println!("Total Votes for candidate: {} =  {}", i, truth[i]);
-    }
-    println!("====================================");
-    
+    println!("Truth");
+    print_vec(&truth);
+
     for dim in 0..num_candidates as usize{
         for server_idx in 0..num_shares{
             let v = &BigNum::new().unwrap() + &agg[server_idx].agg_shares[dim];
@@ -97,7 +95,7 @@ fn main(){
             agg[0].receive_tally_broadcast(dim, server_idx, &v, r, &mut public_param.ctx);
             agg[0].aggregate(dim, v);
         }
-        println!("Total Votes for candidate: {} =  {}", dim, agg[0].ans[dim]);
+    // println!("Total Votes for candidate: {} =  {}", dim, agg[0].ans[dim]);
     }
-
+    print_vec(&agg[0].ans);
 }
