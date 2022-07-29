@@ -4,6 +4,7 @@ use openssl::error::ErrorStack;
 use std::ops::Rem;
 use std::fmt;
 use crate::utils::{gen_random, mod_exp};
+use rand::Rng;
 
 pub struct Client{
     num_servers: usize,
@@ -115,7 +116,14 @@ impl Client{
         
         let res = self.helper(&x, &r, ctx)?;    
         Ok(&res == c)
-    }       
+    } 
+
+    pub fn generate_random_vote(&self, num_candidates: u32)->u32{
+
+        let mut rng = rand::thread_rng();
+    
+        return rng.gen_range(0..num_candidates);
+    }      
 
 }
 

@@ -3,9 +3,6 @@ use openssl::bn::BigNum;
 use ss::server::Server;
 // use rand::Rng;
 use ss::utils::{print_vec};
-use std::ops::Rem;
-
-
 
 fn main(){
 
@@ -19,8 +16,8 @@ fn main(){
     println!("{}\n\n", public_param);
     
     
-    const EPOCH: u32 = 1;
-    for _ in 0..EPOCH{
+    const EPOCH: u32 = 10;
+    for epoch in 0..EPOCH{
         // CREATING SERVERS
         let mut agg = Vec::new();
         for _ in 0..num_shares{
@@ -30,7 +27,7 @@ fn main(){
             let  gen_server_idx = 1;
             let share_of_shares = agg[gen_server_idx].generate_shares_for_low_qual_bit(&mut public_param.ctx);
             let morra_bits = agg[gen_server_idx].generate_fresh_morra();
-
+            
             // Receive shares like normal
             for (dim, shares) in share_of_shares.iter().enumerate(){        
                 for server_idx in 0..num_shares{                    
@@ -66,36 +63,51 @@ fn main(){
             // If this test fails: servers will adjust their shares accordingly by exlcuding the client being processed
             _ = agg[0].sketching_test(&broadcasted_z, &broadcasted_z_star, &mut public_param.ctx);                  
 
+
             // DP            
-            for dim in 0..num_candidates{
-                
-                if morra_bits[dim] == 1{                                                                            
+            for dim in 0..num_candidates{                
+                if morra_bits[dim] == 1{         
+                    // All the servers have updated their shares                                                                   
                     for server_idx in 0..num_shares{     
                         if server_idx == gen_server_idx{
                             agg[gen_server_idx].adapt_shares_for_morra_gen_server(dim, &share_of_shares[dim].shares[gen_server_idx], &share_of_shares[dim].randomness[gen_server_idx]);
+
                         }                   
                         else{
                             agg[server_idx].adapt_shares_for_morra_rec_server(dim, &share_of_shares[dim].shares[server_idx], &share_of_shares[dim].randomness[server_idx]);
-                        }                        
-                        // agg[server_idx].adapt_coms(dim, server_idx, &mut public_param.ctx);                        
+                        }                                                
+                    }
+                    for server_idx1 in 0..num_shares{
+                        for server_idx2 in 0..num_shares{
+                            let is_gen_server = server_idx2 == gen_server_idx;
+                            agg[server_idx1].adapt_coms(dim, server_idx2, is_gen_server, &mut public_param.ctx);
+                        }
                     }
                 }
             }
-            // DP END           
+            // DP END
         }
 
-        // RECONSTRUCT: 
+        // POST RECONSTRUCT: 
         for dim in 0..num_candidates as usize{
             for server_idx in 0..num_shares{
-                let v = &BigNum::new().unwrap() + &agg[server_idx].agg_shares[dim];
-                // let r =  &agg[server_idx].agg_randomness[dim];            
-                // agg[0].receive_tally_broadcast(dim, server_idx, &v, r, &mut public_param.ctx);
+                let  zero = BigNum::new().unwrap();
+                let mut v = BigNum::new().unwrap();
+                let mut r = BigNum::new().unwrap();
+                
+                v.mod_add(&zero, &agg[server_idx].agg_shares[dim], &public_param.q, &mut public_param.ctx).unwrap();
+                r.mod_add(&zero, &agg[server_idx].agg_randomness[dim], &public_param.q, &mut public_param.ctx).unwrap();
+
+                // println!("SERVER IDX : {} SHARE :{}, {}", server_idx, v, r);
+                agg[0].receive_tally_broadcast(dim, server_idx, &v, &r, &mut public_param.ctx);
                 agg[0].aggregate(dim, v, &mut public_param.ctx);
             }
+            println!("");
+
         }    
-        println!("RECONSTRUCTION");
-        print_vec(&agg[0].ans);
-        
+        println!("POST DP NOISE RECONSTRUCTION: {}", epoch);
+        print_vec(&agg[0].ans);        
+        // EPOCH end
     }
     
 

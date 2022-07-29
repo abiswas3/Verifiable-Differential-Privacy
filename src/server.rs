@@ -6,7 +6,7 @@ use std::ops::Rem;
 use std::fmt;
 use rand::Rng;
 
-use crate::utils::{gen_random, mod_exp, print_vec};
+use crate::utils::{gen_random, mod_exp};
 // use crate::utils::calculate_q;
 pub struct Server{
     pub agg_shares: Vec<BigNum>, // Each index corresponds to a input dimension
@@ -208,18 +208,23 @@ impl Server{
     }    
 
 
-    pub fn adapt_coms(&mut self, dimension: usize, gen_server_idx: usize, ctx: &mut BigNumContext){
+    pub fn adapt_coms(&mut self, dimension: usize, server_idx: usize, is_gen_server:bool, ctx: &mut BigNumContext){
 
         
         let num_clients_so_far = self.commitments[dimension].len() - 1;
-        let old_com = &self.commitments[dimension][num_clients_so_far][gen_server_idx];
+        let old_com = &self.commitments[dimension][num_clients_so_far][server_idx];
         // println!("Before : {}", old_com);
         
         let mut tmp = BigNum::new().unwrap();
         _ = tmp.mod_inverse(old_com, &self.p, ctx);
 
-        // gh/(old_com)
-        self.commitments[dimension][num_clients_so_far][gen_server_idx] = (&(&self.g*&self.h)*(&tmp)).rem(&self.p);
+        if is_gen_server {
+            self.commitments[dimension][num_clients_so_far][server_idx] = (&(&self.g*&self.h)*(&tmp)).rem(&self.p);
+        }
+        else{
+            self.commitments[dimension][num_clients_so_far][server_idx] = tmp;
+        }
+        
 
         // println!("AFTER : {}", &self.commitments[dimension][num_clients_so_far][gen_server_idx]);        
 
@@ -288,6 +293,13 @@ impl Server{
         return Ok((&(tmp3) * &(tmp4)).rem(&self.p));        
     }  
     
+    pub fn clear_aggs(&mut self){
+
+        for dim in 0..self.num_candidates{
+            self.ans[dim] = BigNum::new().unwrap();
+        }
+
+    }
     pub fn commit(&self, x: &BigNum,  ctx: &mut BigNumContext) -> Result<(BigNum, BigNum), ErrorStack> {
         let r = gen_random(&self.q).unwrap();
         let c = self.helper(&x, &r, ctx)?;
@@ -359,10 +371,9 @@ impl Server{
     
     fn generate_random_vote(&self, num_candidates: u32)->u32{
 
-        return 0;
-        // let mut rng = rand::thread_rng();
+        let mut rng = rand::thread_rng();
     
-        // return rng.gen_range(0..num_candidates);
+        return rng.gen_range(0..num_candidates);
     }
 
 

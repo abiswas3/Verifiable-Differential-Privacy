@@ -93,7 +93,7 @@ fn main(){
             let v = &BigNum::new().unwrap() + &agg[server_idx].agg_shares[dim];
             let r =  &agg[server_idx].agg_randomness[dim];            
             agg[0].receive_tally_broadcast(dim, server_idx, &v, r, &mut public_param.ctx);
-            agg[0].aggregate(dim, v);
+            agg[0].aggregate(dim, v, &mut public_param.ctx);
         }
     // println!("Total Votes for candidate: {} =  {}", dim, agg[0].ans[dim]);
     }
