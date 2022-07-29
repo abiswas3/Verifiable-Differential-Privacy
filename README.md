@@ -17,6 +17,8 @@ cargo 1.59.0
 
 ## Client features
 
+Shown below are code samples of how to create the input shares with commitments. 
+
 ```bash
 $ cargo run tests
 
@@ -90,17 +92,31 @@ pub fn test_commitments(){
 ```
 
 
-## Server side tests
+## Running just the verifiable histogram protocol
 
-TODO 
+An MPC protocol to get K servers to compute plurality election. As long as one server is honest, no client or server can cheat by tampering with the output, tampering with the inputs of the protocol or deviating in any way from the specs.
+
+```bash
+cargo run --example no_dp_simulation
+```
+
+## Running just the binomial mechanism without client inputs
+
+An MPC protocol to get K servers to generate binomial noise verifiably. If any server deviates from instructions the honest server aborts (Panic's in this case and ends the program).
+
+```bash
+cargo run --example binomial_mechanism
+```
+
+## Running just the verifiable histogram protocol with DP
+
+An MPC protocol to get K servers to compute DP plurality election. As long as one server is honest, no client or server can cheat by tampering with the output, tampering with the inputs of the protocol or deviating in any way from the specs. Furthermore, as long as the honest server does not adopt we can be certain that the output utility holds.
+
+```bash
+cargo run --example full_simulation
+```
 
 ## How to generate plots for paper
 
 TODO
-
-## Running a full simulation
-
-```bash
-cargo run --example simulation
-```
 
