@@ -120,5 +120,20 @@ cargo run --example full_simulation
 
 ## How to generate plots for paper
 
-TODO
+For all plots and figures, run the following code as described below and then visualise the data using the jupyter notebook in scripts directory.
+
+### Secret Sharing
+
+```bash
+cargo run --example secret_sharing_comparison
+```
+
+### Verifification of inputs
+
+```bash
+cargo run --example coms_input_verify
+cargo run --example no_coms_input_verify
+```
+
+### Aggregation
 
