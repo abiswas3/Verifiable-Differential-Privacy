@@ -181,21 +181,31 @@ impl Server{
         return (z_i, z_i_star, t, t_star);
     }
 
-    pub fn adapt_shares_for_morra(&mut self, dimension: usize, ctx: &mut BigNumContext){
+    pub fn adapt_shares_for_morra(&mut self, dimension: usize, share: &BigNum, randomness: &BigNum, ctx: &mut BigNumContext){
 
         // Always on the last guy
         // self.last_received_shares[dimension] = (&BigNum::from_u32(1).unwrap() - &self.last_received_shares[dimension]).rem(&self.q);
         // self.last_received_randomness[dimension] = (&BigNum::from_u32(1).unwrap() - &self.last_received_randomness[dimension]).rem(&self.q);
+
+        // FIXE ME: THIS IS WRONG
+
         let mut tmp1 = BigNum::new().unwrap();
         let one = BigNum::from_u32(1).unwrap();
-        let two = BigNum::from_u32(2).unwrap();
-        _ = tmp1.mod_sub(&one, &self.agg_shares[dimension], &self.q, ctx);
+        // let two = BigNum::from_u32(2).unwrap();
 
-        self.agg_shares[dimension] = &(&two*&tmp1) - &one;
+
+        _ = tmp1.mod_sub(&one, share, &self.q, ctx);
+
+        self.agg_shares[dimension]  = (&self.agg_shares[dimension] - share).rem(&self.q); // subtract of share the same
+        self.agg_shares[dimension] =  (&self.agg_shares[dimension] + &tmp1).rem(&self.q);
 
         let mut tmp2 = BigNum::new().unwrap();
-        _ = tmp2.mod_sub(&one, &self.agg_randomness[dimension], &self.q, ctx);
-        self.agg_randomness[dimension] = &(&two*&tmp2) - &one;             
+        _ = tmp2.mod_sub(&one, &randomness, &self.q, ctx);
+
+        self.agg_randomness[dimension]  = (&self.agg_randomness[dimension] - randomness).rem(&self.q); // subtract of share the same
+        self.agg_randomness[dimension] =  (&self.agg_shares[dimension] + &tmp2).rem(&self.q);
+        
+
     }    
 
     pub fn adapt_coms(&mut self, dimension: usize, gen_server_idx: usize, ctx: &mut BigNumContext){
@@ -225,8 +235,14 @@ impl Server{
         self.last_received_shares[dimension] = share + &BigNum::new().unwrap();
         self.last_received_randomness[dimension] = randomness + &BigNum::new().unwrap();
 
-        self.agg_shares[dimension] = (&self.agg_shares[dimension] + share).rem(&self.q);
-        self.agg_randomness[dimension] = (&self.agg_randomness[dimension] + randomness).rem(&self.q);             
+        let mut tmp = BigNum::new().unwrap();
+        _ = tmp.mod_add(&self.agg_shares[dimension], share, &self.q, ctx);
+        self.agg_shares[dimension] = tmp;
+
+        tmp = BigNum::new().unwrap();
+        _ = tmp.mod_add(&self.agg_randomness[dimension], &randomness, &self.q, ctx);
+
+        self.agg_randomness[dimension] = tmp;
     }
 
     pub fn receive_commitments(&mut self, dimension: usize, coms: &Vec<BigNum>){
@@ -256,10 +272,13 @@ impl Server{
         return ans == res;
     }
 
-    pub fn aggregate(&mut self, dimension: usize, v: BigNum){
+    pub fn aggregate(&mut self, dimension: usize, v: BigNum, ctx: &mut BigNumContext){
 
-        // Reconsturction for additive shares.
-        self.ans[dimension] = (&self.ans[dimension] + &v).rem(&self.q);
+        // Reconsturction for additive shares
+        
+        let mut tmp = BigNum::new().unwrap();
+        _ = tmp.mod_add(&self.ans[dimension], &v, &self.q, ctx);
+        self.ans[dimension] = tmp;
     }
 
     pub fn helper(& self, x1: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
@@ -340,9 +359,10 @@ impl Server{
     
     fn generate_random_vote(&self, num_candidates: u32)->u32{
 
-        let mut rng = rand::thread_rng();
+        return 0;
+        // let mut rng = rand::thread_rng();
     
-        return rng.gen_range(0..num_candidates);
+        // return rng.gen_range(0..num_candidates);
     }
 
 
