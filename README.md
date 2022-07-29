@@ -120,7 +120,7 @@ cargo run --example full_simulation
 
 ## How to generate plots for paper
 
-For all plots and figures, run the following code as described below and then visualise the data using the jupyter notebook in scripts directory.
+For all plots and figures, run the following code as described below and then visualise the data using the [jupyter notebook](https://github.com/abiswas3/Verifiable-Differential-Privacy/blob/main/scripts_for_paper/PlotsForPaper.ipynb) in scripts directory.
 
 ### Secret Sharing
 
