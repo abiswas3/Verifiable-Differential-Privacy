@@ -16,6 +16,25 @@ rustc 1.59.0 (9d1b2106e 2022-02-23)
 $ cargo --version
 cargo 1.59.0
 ```
+## How to generate plots for paper
+
+For all plots and figures, run the following code as described below which generates the raw data which can then be visualised using the [jupyter notebook](https://github.com/abiswas3/Verifiable-Differential-Privacy/blob/main/scripts_for_paper/PlotsForPaper.ipynb) in scripts directory.
+
+### Secret Sharing
+
+```bash
+cargo run --example secret_sharing_comparison
+```
+
+### Verifification of inputs
+
+```bash
+cargo run --example coms_input_verify
+cargo run --example no_coms_input_verify
+```
+
+### Aggregation
+
 
 ## Client features
 
@@ -117,23 +136,4 @@ An MPC protocol to get K servers to compute DP plurality election. As long as on
 ```bash
 cargo run --example full_simulation
 ```
-
-## How to generate plots for paper
-
-For all plots and figures, run the following code as described below and then visualise the data using the [jupyter notebook](https://github.com/abiswas3/Verifiable-Differential-Privacy/blob/main/scripts_for_paper/PlotsForPaper.ipynb) in scripts directory.
-
-### Secret Sharing
-
-```bash
-cargo run --example secret_sharing_comparison
-```
-
-### Verifification of inputs
-
-```bash
-cargo run --example coms_input_verify
-cargo run --example no_coms_input_verify
-```
-
-### Aggregation
 
