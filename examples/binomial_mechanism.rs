@@ -12,7 +12,7 @@ fn main(){
     // Parameters 
     let security_parameter = 4;
     let num_candidates = 3; // Singe dim bin mean estimation for now
-    let num_shares = 4; // num_servers
+    let num_shares = 3; // num_servers
     let num_clients = 100;
 
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
@@ -66,29 +66,32 @@ fn main(){
             // If this test fails: servers will adjust their shares accordingly by exlcuding the client being processed
             _ = agg[0].sketching_test(&broadcasted_z, &broadcasted_z_star, &mut public_param.ctx);                  
 
-            // DP
-            
+            // DP            
             for dim in 0..num_candidates{
                 
-                if morra_bits[dim] == 1{                                                        
-                    agg[gen_server_idx].adapt_shares_for_morra(dim, &share_of_shares[dim].shares[gen_server_idx], &share_of_shares[dim].randomness[gen_server_idx], &mut public_param.ctx);
-                    for server_idx in 0..num_shares{                        
-                        agg[server_idx].adapt_coms(dim, server_idx, &mut public_param.ctx);                        
+                if morra_bits[dim] == 1{                                                                            
+                    for server_idx in 0..num_shares{     
+                        if server_idx == gen_server_idx{
+                            agg[gen_server_idx].adapt_shares_for_morra_gen_server(dim, &share_of_shares[dim].shares[gen_server_idx], &share_of_shares[dim].randomness[gen_server_idx]);
+                        }                   
+                        else{
+                            agg[server_idx].adapt_shares_for_morra_rec_server(dim, &share_of_shares[dim].shares[server_idx], &share_of_shares[dim].randomness[server_idx]);
+                        }                        
+                        // agg[server_idx].adapt_coms(dim, server_idx, &mut public_param.ctx);                        
                     }
                 }
             }
             // DP END           
-            break
         }
 
         // RECONSTRUCT: 
         for dim in 0..num_candidates as usize{
             for server_idx in 0..num_shares{
                 let v = &BigNum::new().unwrap() + &agg[server_idx].agg_shares[dim];
-                let r =  &agg[server_idx].agg_randomness[dim];            
-                agg[0].receive_tally_broadcast(dim, server_idx, &v, r, &mut public_param.ctx);
+                // let r =  &agg[server_idx].agg_randomness[dim];            
+                // agg[0].receive_tally_broadcast(dim, server_idx, &v, r, &mut public_param.ctx);
                 agg[0].aggregate(dim, v, &mut public_param.ctx);
-            }            
+            }
         }    
         println!("RECONSTRUCTION");
         print_vec(&agg[0].ans);

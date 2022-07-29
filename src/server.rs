@@ -181,7 +181,7 @@ impl Server{
         return (z_i, z_i_star, t, t_star);
     }
 
-    pub fn adapt_shares_for_morra(&mut self, dimension: usize, share: &BigNum, randomness: &BigNum, ctx: &mut BigNumContext){
+    pub fn adapt_shares_for_morra_gen_server(&mut self, dimension: usize, share: &BigNum, randomness: &BigNum){
 
         // Always on the last guy
         // self.last_received_shares[dimension] = (&BigNum::from_u32(1).unwrap() - &self.last_received_shares[dimension]).rem(&self.q);
@@ -189,24 +189,24 @@ impl Server{
 
         // FIXE ME: THIS IS WRONG
 
-        let mut tmp1 = BigNum::new().unwrap();
-        let one = BigNum::from_u32(1).unwrap();
-        // let two = BigNum::from_u32(2).unwrap();
-
-
-        _ = tmp1.mod_sub(&one, share, &self.q, ctx);
-
+        let one = BigNum::from_u32(1).unwrap();                
         self.agg_shares[dimension]  = (&self.agg_shares[dimension] - share).rem(&self.q); // subtract of share the same
-        self.agg_shares[dimension] =  (&self.agg_shares[dimension] + &tmp1).rem(&self.q);
-
-        let mut tmp2 = BigNum::new().unwrap();
-        _ = tmp2.mod_sub(&one, &randomness, &self.q, ctx);
+        self.agg_shares[dimension]  = &(&self.agg_shares[dimension] - share).rem(&self.q) + &one; // subtract of share the same
 
         self.agg_randomness[dimension]  = (&self.agg_randomness[dimension] - randomness).rem(&self.q); // subtract of share the same
-        self.agg_randomness[dimension] =  (&self.agg_shares[dimension] + &tmp2).rem(&self.q);
-        
-
+        self.agg_randomness[dimension]  = &(&self.agg_randomness[dimension] - randomness).rem(&self.q) + &one; // subtract of share the same
+                
     }    
+
+    pub fn adapt_shares_for_morra_rec_server(&mut self, dimension: usize, share: &BigNum, randomness: &BigNum){
+
+        self.agg_shares[dimension]  = (&self.agg_shares[dimension] - share).rem(&self.q); // subtract of share the same
+        self.agg_shares[dimension]  = (&self.agg_shares[dimension] - share).rem(&self.q); // subtract of share the same
+
+        self.agg_randomness[dimension]  = (&self.agg_randomness[dimension] - randomness).rem(&self.q); // subtract of share the same
+        self.agg_randomness[dimension]  = (&self.agg_randomness[dimension] - randomness).rem(&self.q); // subtract of share the same
+    }    
+
 
     pub fn adapt_coms(&mut self, dimension: usize, gen_server_idx: usize, ctx: &mut BigNumContext){
 
