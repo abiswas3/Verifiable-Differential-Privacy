@@ -6,6 +6,8 @@ Code for our paper **CITE**.
 
 **Attention**: In this repository we simulate inter server communication in a single thread via a for loop. A more practical setting is to follow [this example](https://github.com/henrycg/heavyhitters) and setup multiple servers (and adapt the interfaace). For the purposes of prototyping we did not find this necessary.
 
+**Attention**: In this repository we use finite field discrete logarithm. It is advisable to use an elliptic curve implementation instead. It does not effect the correctness of the claims in the paper however. In the coming future we will transition into using ECC.
+
 ## Getting Started 
 
 Make sure you have a working rust and cargo installation
