@@ -2,31 +2,33 @@ extern crate dp_client as ss;
 use openssl::bn::BigNum;
 use ss::server::Server;
 // use rand::Rng;
-use ss::utils::{print_vec};
+// use ss::utils::{print_vec};
+use std::time::{Instant};
 
 fn main(){
 
     // Parameters 
-    let security_parameter = 4;
-    let num_candidates = 3; // Singe dim bin mean estimation for now
-    let num_shares = 3; // num_servers
-    let num_clients = 100;
+    let security_parameter = 256;
+    let num_candidates = 2; // Singe dim bin mean estimation for now
+    let num_shares = 4; // num_servers
+    let num_clients = 1000;
+    
+    let num_noise_bits = 50; // with p=1/2 this suffices. 
 
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
-    println!("{}\n\n", public_param);
-    
+    // println!("{}\n\n", public_param);
     
     const EPOCH: u32 = 10;
-    for epoch in 0..EPOCH{
+    for _epoch in 0..EPOCH{
+
         // CREATING SERVERS
         let mut agg = Vec::new();
         for _ in 0..num_shares{
             agg.push(Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h));
         }
+        let mut now = Instant::now();
         for _ in 0..num_clients{
-
             // ------------------------------------- CLIENT VOTING ----------------------------------------------
-
             let client = ss::client::Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
             let msg = client.generate_random_vote(num_candidates as u32);            
     
@@ -45,6 +47,10 @@ fn main(){
                     agg[server_idx].receive_commitments(dim,  &shares.commitments);                
                 }                              
             }
+            
+            // let tmp = now.elapsed().as_millis();
+            // println!("Share: {}", tmp);   
+            // now = Instant::now();
 
             let mut broadcasted_z : Vec<BigNum> = Vec::new();
             let mut broadcasted_z_star : Vec<BigNum> = Vec::new();
@@ -67,9 +73,17 @@ fn main(){
             // If this test fails: CLIENT CHEATED
             _ = agg[0].sketching_test(&broadcasted_z, &broadcasted_z_star, &mut public_param.ctx); 
             // ------------------------------------- CLIENT VOTING END------------------------------------------      
+            // let tmp = now.elapsed().as_millis();
+            // println!("Sketch: {}", tmp);   
 
-            
-            // ------------------------------------- DP SERVER START ----------------------------------------------
+        }
+        let mut tmp = now.elapsed().as_millis();
+        println!("Total Time to accept clients: {}", tmp);        
+
+        now = Instant::now();
+        // ALl clients have sent in their votes and now the servers have added their noise.
+        for _ in 0..num_noise_bits{
+            // Note: currently this is done once per client but it need not be
             let  gen_server_idx = 1; // In reality every server takes turns to be a generating server
             let share_of_shares = agg[gen_server_idx].generate_shares_for_low_qual_bit(&mut public_param.ctx);
             // Receive shares like normal
@@ -106,7 +120,6 @@ fn main(){
 
             // If this test fails: one of the servers cheated
             _ = agg[0].sketching_test(&broadcasted_z, &broadcasted_z_star, &mut public_param.ctx);                  
-
             let morra_bits = agg[gen_server_idx].generate_fresh_morra();
             for dim in 0..num_candidates{                
                 if morra_bits[dim] == 1{         
@@ -128,9 +141,11 @@ fn main(){
                     }
                 }
             }
-            // ------------------------------------- DP SERVER END ----------------------------------------------
         }
+        tmp = now.elapsed().as_millis();
+        println!("Time to generate noise: {}", tmp);        
 
+        now = Instant::now();
         // POST RECONSTRUCT: 
         for dim in 0..num_candidates as usize{
             for server_idx in 0..num_shares{
@@ -145,11 +160,10 @@ fn main(){
                 agg[0].receive_tally_broadcast(dim, server_idx, &v, &r, &mut public_param.ctx);
                 agg[0].aggregate(dim, v, &mut public_param.ctx);
             }
-            println!("");
-
         }    
-        println!("POST DP NOISE RECONSTRUCTION: {}", epoch);
-        print_vec(&agg[0].ans);        
+        tmp = now.elapsed().as_millis();
+        println!("Aggregate time: {}\n", tmp);      
+        // print_vec(&agg[0].ans);
         // EPOCH end
     }
     

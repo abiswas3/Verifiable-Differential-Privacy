@@ -2,28 +2,31 @@ extern crate dp_client as ss;
 use openssl::bn::BigNum;
 use ss::server::Server;
 // use rand::Rng;
-use ss::utils::{print_vec};
+// use ss::utils::{print_vec};
+use std::time::{Instant};
+
+//TODO: get timing stats
 
 fn main(){
 
     // Parameters 
-    let security_parameter = 4;
-    let num_candidates = 3; // Singe dim bin mean estimation for now
-    let num_shares = 3; // num_servers
-    let num_clients = 100;
-
+    let security_parameter = 256;
+    let num_candidates = 20; 
+    let num_shares = 4; // num_servers
+    let num_noise_bits = 50;
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
     println!("{}\n\n", public_param);
     
     
     const EPOCH: u32 = 10;
-    for epoch in 0..EPOCH{
+    for _epoch in 0..EPOCH{
+        let now = Instant::now();
         // CREATING SERVERS
         let mut agg = Vec::new();
         for _ in 0..num_shares{
             agg.push(Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h));
         }
-        for _ in 0..num_clients{
+        for _ in 0..num_noise_bits{
             let  gen_server_idx = 1;
             let share_of_shares = agg[gen_server_idx].generate_shares_for_low_qual_bit(&mut public_param.ctx);
             let morra_bits = agg[gen_server_idx].generate_fresh_morra();
@@ -102,11 +105,9 @@ fn main(){
                 agg[0].receive_tally_broadcast(dim, server_idx, &v, &r, &mut public_param.ctx);
                 agg[0].aggregate(dim, v, &mut public_param.ctx);
             }
-            println!("");
-
         }    
-        println!("POST DP NOISE RECONSTRUCTION: {}", epoch);
-        print_vec(&agg[0].ans);        
+        let tmp = now.elapsed().as_millis();
+        println!("Time it took to generate this noise: {}", tmp);
         // EPOCH end
     }
     

@@ -14,10 +14,10 @@ fn generate_random_vote(num_candidates: u32)->u32{
 fn main(){
 
     // Parameters 
-    let security_parameter = 4;
-    let num_candidates = 5; // Singe dim bin mean estimation for now
+    let security_parameter = 256;
+    let num_candidates = 100; // Singe dim bin mean estimation for now
     let num_shares = 4; // num_servers
-    let num_clients = 10;
+    let num_clients = 100;
 
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
     // println!("{}\n\n", public_param);
@@ -85,8 +85,8 @@ fn main(){
         
     }
 
-    println!("Truth");
-    print_vec(&truth);
+    // println!("Truth");
+    // print_vec(&truth);
 
     for dim in 0..num_candidates as usize{
         for server_idx in 0..num_shares{
