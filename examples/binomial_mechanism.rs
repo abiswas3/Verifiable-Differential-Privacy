@@ -6,7 +6,6 @@ use ss::server::Server;
 use std::time::{Instant};
 
 //TODO: get timing stats
-
 fn main(){
 
     // Parameters 
