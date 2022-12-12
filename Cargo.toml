@@ -3,7 +3,7 @@ name = "dp_client"
 version = "0.1.0"
 edition = "2021"
 authors = ["Ari Biswas <aribiswas3@gmail.com>"]
-description = "A pure-Rust implementation of a dp client as described in our paper CITE LINK"
+description = "A pure-Rust implementation for auditable DP"
 keywords = [
   "secret-sharing",
   "Shamir",
@@ -14,12 +14,20 @@ keywords = [
 ]
 [dependencies]
 rand = "0.8.5"
+rand_core = "*"
+sha2 = "*"
 openssl-sys = "0.9"
 openssl = "0.10"
 time = "*"
+curve25519-dalek = "3"
+# num-bigint-dig = "0.8.2"
+num-bigint = {version = "0.4.3", features = ["rand"]}
+num-traits = "0.2.11"
+num-integer = {version = "0.1.42", features = ["std", "i128"]}
+# secp256k1 = {version = "0.24.2", features = ["rand-std", "serde"]}
 
 [dev-dependencies]
-criterion = "0.3"
+# criterion = "0.3"
 serde = "*"
 serde_json = "*"
 

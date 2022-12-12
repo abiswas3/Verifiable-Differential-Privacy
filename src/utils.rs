@@ -3,6 +3,7 @@
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
 
+
 pub fn gen_random(limit: &BigNum) -> Result<BigNum, ErrorStack> {
     // generate random bignum between 1, limit-1
     let one = BigNum::from_u32(1)?;
