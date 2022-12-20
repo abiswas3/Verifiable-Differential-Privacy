@@ -1,8 +1,5 @@
 extern crate dp_client as ss;
 
-
-
-
 fn main(){
 
     use curve25519_dalek::constants;

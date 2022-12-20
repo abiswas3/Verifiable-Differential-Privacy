@@ -39,15 +39,8 @@ impl Commitment {
 }
 
 pub struct Share{
-    pub commitments: Vec<RistrettoPoint>,
-    pub randomness: Vec<Scalar>,
-    pub shares: Vec<Scalar>,
+    pub commitments: RistrettoPoint,
+    pub randomness: Scalar,
+    pub shares: Scalar,
 }
 
-// impl Share{
-
-//     pub fn new()->Share{
-
-//         let commitments = Vev<RistrettoPoint>
-//     }
-// }

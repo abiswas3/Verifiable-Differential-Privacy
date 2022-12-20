@@ -20,6 +20,7 @@ openssl-sys = "0.9"
 openssl = "0.10"
 time = "*"
 curve25519-dalek = "3"
+sha3 = "*"
 # num-bigint-dig = "0.8.2"
 num-bigint = {version = "0.4.3", features = ["rand"]}
 num-traits = "0.2.11"
