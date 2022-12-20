@@ -108,7 +108,7 @@ impl Client{
     }
 
 
-    pub fn create_cds94_proof(&self, share_1: &Share, ctx: &mut BigNumContext)->(BigNum, BigNum, BigNum, BigNum, BigNum, BigNum, BigNum){
+    pub fn create_cds94_proof_for_1(&self, share_1: &Share, ctx: &mut BigNumContext)->(BigNum, BigNum, BigNum, BigNum, BigNum, BigNum, BigNum){
 
         let mut hasher = Sha3_256::new();
 
@@ -164,5 +164,60 @@ impl Client{
         return (e0, e1, e, v0, v1, d0, d1);
         
     }
+
+    pub fn create_cds94_proof_for_0(&self, share_1: &Share, ctx: &mut BigNumContext)->(BigNum, BigNum, BigNum, BigNum, BigNum, BigNum, BigNum){
+
+        let mut hasher = Sha3_256::new();
+
+        let mut recons_share = BigNum::new().unwrap();
+        let mut recons_rand = BigNum::new().unwrap();
+        let mut recons_com = BigNum::from_u32(1).unwrap();
+
+        for server_idx in 0..self.num_servers{
+            recons_share = &(&recons_share + &share_1.shares[server_idx]) % &self.q;
+            recons_rand = &(&recons_rand + &share_1.randomness[server_idx]) % &self.q;
+            recons_com = &(&recons_com * &share_1.commitments[server_idx])% &self.p;
+        }
+
+        let v1 = gen_random(&self.q).unwrap();
+        let e1 = gen_random(&self.q).unwrap();
+        let b = gen_random(&self.q).unwrap();
+
+        // Messages to send to the verifier
+        let mut d1 = BigNum::new().unwrap();    
+        let mut d0 = BigNum::new().unwrap();
+
+        // d0 : Honest
+        _ = d0.mod_exp(&self.h, &b, &self.p, ctx); // h^{b}
+
+        // d1 : Cheat       
+        let mut tmp = BigNum::new().unwrap();
+        let mut tmp2 = BigNum::new().unwrap();
+        let mut tmp3 = BigNum::new().unwrap();        
+        _ = d1.mod_exp(&self.h, &v1, &self.p, ctx); // h^{v1}
+        _ = tmp.mod_exp(&recons_com, &e1, &self.p, ctx); // c^{e1}
+        _ = tmp2.mod_inverse(&tmp, &self.p, ctx); // 1/c^{e1}
+        _ = tmp3.mod_exp(&self.g, &e1, &self.p, ctx); // g^{e1}
+        d1 = (&(&d1 * &tmp2) * &tmp3).rem(&self.p); //h^{v1} x 1/c^{e1} x g^{e1}
+
+
+        // Challenge from verifier or hash if in FS mode
+        // This will be fixed 256 bit security btw -- you'd have to extend with two challenges to get 512 bits of security.
+        let mut input_to_rom = (&BigNum::new().unwrap() + &recons_com).to_vec();
+        input_to_rom.append(&mut d0.to_vec());
+        input_to_rom.append(&mut d1.to_vec());
+        hasher.update(input_to_rom); // this will take d0, d1, commitment as a byte array
+        let result = hasher.finalize();
+        let e = BigNum::from_slice(&result).unwrap().rem(&self.q);
+
+        // Final messages
+        let mut e0 = BigNum::new().unwrap();
+        _ = e0.mod_sub(&e, &e1, &self.q, ctx);         
+        let v0 = (&b + &(&e0*&recons_rand)).rem(&self.q);
+
+        return (e0, e1, e, v0, v1, d0, d1);
+        
+    }
+
 
 }

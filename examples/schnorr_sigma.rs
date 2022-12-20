@@ -1,9 +1,9 @@
 extern crate dp_client as ss;
 use openssl::bn::{BigNum};
-use std::ops::Rem;
-use sha3::{Digest, Sha3_256};
+use std::env;
 
 fn main(){
+    env::set_var("RUST_BACKTRACE", "1");
 
     // Parameters 
     let security_parameter = 8;
@@ -12,15 +12,12 @@ fn main(){
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
     println!("{}", public_param);
 
- 
-
     let num_trials = 1000;
     for _ in 0..num_trials{
-        let mut hasher = Sha3_256::new();
 
         let client = ss::verifiable_client::Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
         let share_1 = client.share(1, &mut public_param.ctx);
-        // let share_2 = client.share(0, &mut public_param.ctx);
+        let share_0 = client.share(0, &mut public_param.ctx);
 
         let mut recons_share = BigNum::new().unwrap();
         let mut recons_rand = BigNum::new().unwrap();
@@ -37,7 +34,7 @@ fn main(){
         assert_eq!(recons_share, BigNum::from_u32(1).unwrap()); // check the secret is actually 1
 
         //----------------------------------PROOF STARTS----------------------------------------
-        let (e0, e1, e, v0, v1, d0, d1) = client.create_cds94_proof(&share_1, &mut public_param.ctx);        
+        let (e0, e1, e, v0, v1, d0, d1) = client.create_cds94_proof_for_1(&share_1, &mut public_param.ctx);        
         let board = ss::audit::Board::new(&share_1.commitments, 
             &public_param.p,
             &public_param.q,
@@ -51,8 +48,23 @@ fn main(){
             &d0, 
             &d1, 
             num_shares);        
-        // ----------------------------------Verification STARTS----------------------------------------
         
+        board.verify(&mut public_param.ctx);
+
+        let (e0, e1, e, v0, v1, d0, d1) = client.create_cds94_proof_for_0(&share_0, &mut public_param.ctx);        
+        let board = ss::audit::Board::new(&share_0.commitments, 
+            &public_param.p,
+            &public_param.q,
+            &public_param.g,
+            &public_param.h,
+            &e0, 
+            &e1, 
+            &e, 
+            &v0, 
+            &v1, 
+            &d0, 
+            &d1, 
+            num_shares);        
         board.verify(&mut public_param.ctx);
     }
 }
