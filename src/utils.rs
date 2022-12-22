@@ -3,6 +3,22 @@
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
 
+pub fn additive_share(secret: &BigNum, q: &BigNum, num_shares: usize, ctx: &mut BigNumContext)->Vec<BigNum>{
+    
+    let mut shares = Vec::new();
+    for _ in 1..(num_shares){            
+        let tmp = gen_random(q).unwrap(); 
+        shares.push(tmp);
+    }
+
+    let secret = &BigNum::new().unwrap() + secret;
+    let total = shares.iter().fold(BigNum::new().unwrap(), |acc, x| &acc + x);
+    let mut last_share = BigNum::new().unwrap();
+    _ = last_share.mod_sub(&secret, &total, q, ctx);
+        
+    shares.push(last_share);
+    return shares;
+}
 
 pub fn gen_random(limit: &BigNum) -> Result<BigNum, ErrorStack> {
     // generate random bignum between 1, limit-1
