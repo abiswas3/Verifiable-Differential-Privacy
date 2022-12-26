@@ -1,5 +1,5 @@
 use openssl::bn::{BigNum, BigNumContext};
-use core::num;
+// use core::num;
 // use openssl::error::ErrorStack;
 // use rand::distributions::{Bernoulli, Distribution};
 use std::ops::Rem;
@@ -10,16 +10,12 @@ use crate::utils::{gen_random};
 
 // use crate::utils::calculate_q;
 pub struct Server{
-    pub agg_shares: Vec<BigNum>, // Each index corresponds to a input dimension
-    pub agg_randomness: Vec<BigNum>, // Each index corresponds to a input dimension    
-    pub last_received_shares: Vec<BigNum>, // Each index corresponds to a input dimension
-    pub last_received_randomness: Vec<BigNum>, // Each index corresponds to a input dimension    
     pub p: BigNum, // Diffie Hellman sub group G_q in Z_p*
     pub q: BigNum, // order of diffie Hellman group G
     pub g: BigNum, // generator for G
     pub h: BigNum, // random element of G such that it is hard to solve h = g^\alpha for random \alpha
-    pub ans:Vec<BigNum>, // Store the final reconstructed histogram over n clients,
-    pub num_candidates: usize,    
+    pub num_candidates: usize,
+    pub num_servers: usize,
 }
 
 // NOTE: 
@@ -46,20 +42,12 @@ impl Server{
 
     pub fn new(num_servers:usize, num_candidates: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
        
-        let mut agg_shares = Vec::<BigNum>::with_capacity(num_candidates as usize);   
-        let mut agg_randomness = Vec::<BigNum>::with_capacity(num_candidates as usize);   
-        
-        let mut last_received_randomness = Vec::new();
-        let mut last_received_shares = Vec::new();
-
-        let mut ans = Vec::<BigNum>::with_capacity(num_candidates as usize);   
-
         let p = &BigNum::new().unwrap() + _p;
         let q = &BigNum::new().unwrap() + _q;
         let g = &BigNum::new().unwrap() + _g;
         let h = &BigNum::new().unwrap() + _h;
                 
-        Self{agg_shares, agg_randomness, last_received_shares, last_received_randomness, p, q, g, h, ans, num_candidates}
+        Self{p, q, g, h, num_candidates, num_servers}
     }
 
     pub fn multiply_first(&self, x_i: &BigNum, y_i: &BigNum, a_i: &BigNum, b_i: &BigNum, ctx: &mut BigNumContext)->(BigNum, BigNum){
@@ -76,8 +64,7 @@ impl Server{
 
         let db = d*b_i;
         let ea = e*a_i;
-        
-        
+                
         let xy_i = &(&(&db + &ea) + c_i);
         return xy_i.rem(&self.q);
 

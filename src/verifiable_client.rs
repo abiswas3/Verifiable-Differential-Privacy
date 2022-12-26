@@ -1,8 +1,6 @@
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
-// use rand::random;
 use std::ops::Rem;
-// use std::fmt;
 use crate::utils::{gen_random, mod_exp};
 use sha3::{Digest, Sha3_256};
 use rand::Rng;
