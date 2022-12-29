@@ -7,7 +7,7 @@ use ss::client::Client;
 // A full simulation without the DP noise
 fn main() {
         // Parameters 
-        let security_parameter = 256; // number bits of security to use
+        let security_parameter = 256; // number bits of security to use (internally multiplied by 2)
         let num_candidates = 5; // M
         let num_shares = 4; // K
     

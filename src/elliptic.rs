@@ -1,11 +1,7 @@
 // extern crate rand_core;
-
-// use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-
-// use sha2::Sha512;
-
+use std::time::{Instant};
 
 
 #[derive(Clone)]
@@ -25,8 +21,15 @@ impl Commitment {
         let message_copy: [u8;32] = message.clone();
         // let message_copy = message.as_bytes().to_vec() as [u8; 32];
         let m = Scalar::from_canonical_bytes(message_copy).unwrap();
+        let now = Instant::now();        
         let gm = &m * &self.g;
+        let end = now.elapsed().as_micros();
+        println!("ECC exp: {},", end);    
+        let now = Instant::now();        
         let hr = &r * &self.h;
+        let end = now.elapsed().as_micros();
+        println!("ECC exp: {},", end);
+    
         let ans = gm + hr;
         return ans
     }    
