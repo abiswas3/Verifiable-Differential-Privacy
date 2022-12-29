@@ -1,4 +1,14 @@
 use curve25519_dalek::scalar::Scalar;
+use openssl::bn::{BigNum};
+
+pub fn bignum_to_bytes(x: BigNum)->[u8;32]{
+
+    let mut tmp = [0 as u8; 32];
+    for (i, byte) in x.to_vec().iter().enumerate(){
+        tmp[i] = byte + 0;
+    }   
+    return tmp;
+}
 
 pub fn u32_to_bytes(x: u32)->[u8;32]{
 

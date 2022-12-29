@@ -1,8 +1,9 @@
-extern crate rand_core;
+// extern crate rand_core;
 
 // use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
+
 // use sha2::Sha512;
 
 
@@ -26,7 +27,8 @@ impl Commitment {
         let m = Scalar::from_canonical_bytes(message_copy).unwrap();
         let gm = &m * &self.g;
         let hr = &r * &self.h;
-        return gm + hr;
+        let ans = gm + hr;
+        return ans
     }    
 
     pub fn open(&self, com: RistrettoPoint, message: &[u8; 32], r: Scalar)->bool{
@@ -38,9 +40,4 @@ impl Commitment {
     }
 }
 
-pub struct Share{
-    pub commitments: RistrettoPoint,
-    pub randomness: Scalar,
-    pub shares: Scalar,
-}
 
