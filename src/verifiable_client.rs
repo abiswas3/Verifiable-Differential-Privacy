@@ -20,6 +20,39 @@ pub struct Share{
     pub shares: Vec<BigNum>,
 }
 
+pub struct  Proof{
+    pub coms: Vec<BigNum>,
+    pub e0 : BigNum, 
+    pub e1 : BigNum, 
+    pub e : BigNum, 
+    pub v0: BigNum, 
+    pub v1: BigNum, 
+    pub d0: BigNum, 
+    pub d1: BigNum,
+}
+
+impl Proof{
+
+    pub fn new(_coms: &Vec<BigNum>, _e0: &BigNum, _e1: &BigNum, _e: &BigNum, _v0: &BigNum, _v1: &BigNum, _d0: &BigNum, _d1: &BigNum)->Proof{
+
+        let e0 = &BigNum::new().unwrap() + _e0;
+        let e1 = &BigNum::new().unwrap() + _e1;
+        let e = &BigNum::new().unwrap() + _e;
+        let v0 = &BigNum::new().unwrap() + _v0;
+        let v1 = &BigNum::new().unwrap() + _v1;
+        let d0 = &BigNum::new().unwrap() + _d0;
+        let d1 = &BigNum::new().unwrap() + _d1;
+
+        let mut coms: Vec<BigNum> = Vec::new();
+        for c in _coms.iter(){
+            coms.push(c + &BigNum::new().unwrap());
+        }
+
+        Self{coms, e0, e1, e, v0, v1, d0, d1}
+
+    }
+}
+
 impl Client{
 
     pub fn new(num_servers: usize, num_candidates: u32, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Client {
@@ -149,7 +182,9 @@ impl Client{
     }
 
 
-    pub fn create_cds94_proof_for_1(&self, share_1: &Share, ctx: &mut BigNumContext)->(BigNum, BigNum, BigNum, BigNum, BigNum, BigNum, BigNum){
+
+
+    pub fn create_cds94_proof_for_1(&self, share_1: &Share, ctx: &mut BigNumContext)->Proof{
 
         let mut hasher = Sha3_256::new();
 
@@ -202,11 +237,11 @@ impl Client{
         let v1 = (&b + &(&e1*&recons_rand)).rem(&self.q);
 
 
-        return (e0, e1, e, v0, v1, d0, d1);
+        return Proof::new(&share_1.commitments, &e0, &e1, &e, &v0, &v1, &d0, &d1);
         
     }
 
-    pub fn create_cds94_proof_for_0(&self, share_1: &Share, ctx: &mut BigNumContext)->(BigNum, BigNum, BigNum, BigNum, BigNum, BigNum, BigNum){
+    pub fn create_cds94_proof_for_0(&self, share_1: &Share, ctx: &mut BigNumContext)->Proof{
 
         let mut hasher = Sha3_256::new();
 
@@ -256,9 +291,27 @@ impl Client{
         _ = e0.mod_sub(&e, &e1, &self.q, ctx);         
         let v0 = (&b + &(&e0*&recons_rand)).rem(&self.q);
 
-        return (e0, e1, e, v0, v1, d0, d1);
+        return Proof::new(&share_1.commitments, &e0, &e1, &e, &v0, &v1, &d0, &d1);
         
     }
 
+
+    pub fn create_input_proof(&self, choice: u32, ctx: &mut BigNumContext)->Vec<Proof>{
+
+        assert_eq!(true, choice <= self.num_candidates);
+
+        let vote = self.vote(choice, ctx); // Vector of size M, each index is a share for K servers
+        let mut proofs = Vec::new(); // A proof of size M
+
+        for i  in 0..self.num_candidates{            
+            if i == choice{
+                proofs.push(self.create_cds94_proof_for_1(&vote[i as usize], ctx));
+            }
+            else{
+                proofs.push(self.create_cds94_proof_for_0(&vote[i as usize], ctx));    
+            }        
+        }
+        return proofs;
+    }
 
 }

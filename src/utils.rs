@@ -21,15 +21,14 @@ pub fn additive_share(secret: &BigNum, q: &BigNum, num_shares: usize, ctx: &mut 
 }
 
 pub fn gen_random(limit: &BigNum) -> Result<BigNum, ErrorStack> {
+   
     // generate random bignum between 1, limit-1
-    let one = BigNum::from_u32(1)?;
-    let mut r = BigNum::new()?;
-    let mut tmp1 = BigNum::new()?;
+    let one = BigNum::from_u32(1)?; 
+    let mut r = BigNum::new()?; // r = 0
+    let mut tmp1 = BigNum::new()?; //tmp1 = 0
 
 
-    tmp1.checked_sub(limit, &one)?;
-    let mut tmp2 = BigNum::new()?;
-    tmp2.checked_add(&r, &one)?;
+    tmp1.checked_sub(limit, &one)?; // tm1 = q - 1
     tmp1.rand_range(&mut r)?;
     Ok(r)
 }
@@ -60,6 +59,14 @@ pub fn calculate_q(p: &BigNum) -> Result<BigNum, ErrorStack> {
 }
 
 pub fn print_vec<T>(vec: &Vec<T>)where T: std::fmt::Display{
+    print!("[ ");
+    for elem in vec.iter(){
+        print!("{}, ", elem);
+    }
+    println!(" ]");
+}
+
+pub fn print_array<T>(vec: &[T;32])where T: std::fmt::Display{
     print!("[ ");
     for elem in vec.iter(){
         print!("{}, ", elem);

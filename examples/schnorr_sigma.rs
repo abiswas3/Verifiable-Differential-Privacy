@@ -1,4 +1,5 @@
 extern crate dp_client as ss;
+use openssl::bn::{BigNum};
 use std::env;
 use std::time::{Instant};
 
@@ -13,62 +14,41 @@ fn main(){
     let num_shares = 4; // num_servers    
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();
     // println!("{}", public_param);
-    let num_parallel_cores = 8;
+    // let num_parallel_cores = 8;
     
-    for i in 3..14{
-        let base: i32 = 2; // an explicit type is required        
-        let num_candidates = base.pow(i) as usize/num_parallel_cores;        
-        let mut elapsed_time = 0;
-        for _ in 0..num_candidates{
+    for i in 1..14{
 
-            let client = ss::verifiable_client::Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);    
-            let choice = client.generate_random_vote(num_candidates as u32);   
-            let vote = client.vote(choice, &mut public_param.ctx);
+        let base: i32 = 2; // an explicit type is required        
+        let num_candidates = base.pow(i) as usize;        // Number of dimensions I have to deal with
+
+        let client = ss::verifiable_client::Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);    
+        let choice = client.generate_random_vote(num_candidates as u32);   
+
+        let proofs = client.create_input_proof(choice, &mut public_param.ctx); // A proof for each of the coordinates 
+
+        // Go through each proof and berify it.
+        let mut elapsed_time = 0;
+        for i in 0..num_candidates{
+            let board = ss::audit::Board::new(&proofs[i as usize].coms, 
+                &public_param.p,
+                &public_param.q,
+                &public_param.g,
+                &public_param.h,
+                &proofs[i].e0, 
+                &proofs[i].e1, 
+                &proofs[i].e, 
+                &proofs[i].v0, 
+                &proofs[i].v1, 
+                &proofs[i].d0, 
+                &proofs[i].d1, 
+                num_shares);      
 
             let now = Instant::now();
-            for i in 0..num_candidates{
-    
-                if i == choice as usize{
-                    let (e0, e1, e, v0, v1, d0, d1) = client.create_cds94_proof_for_1(&vote[i as usize], &mut public_param.ctx);        
-                    let board = ss::audit::Board::new(&vote[i as usize].commitments, 
-                        &public_param.p,
-                        &public_param.q,
-                        &public_param.g,
-                        &public_param.h,
-                        &e0, 
-                        &e1, 
-                        &e, 
-                        &v0, 
-                        &v1, 
-                        &d0, 
-                        &d1, 
-                        num_shares);                
-                    board.verify(&mut public_param.ctx);                    
-        
-                }
-                else{
-                    let (e0, e1, e, v0, v1, d0, d1) = client.create_cds94_proof_for_0(&vote[i as usize], &mut public_param.ctx);    
-                    let board = ss::audit::Board::new(&vote[i as usize].commitments, 
-                        &public_param.p,
-                        &public_param.q,
-                        &public_param.g,
-                        &public_param.h,
-                        &e0, 
-                        &e1, 
-                        &e, 
-                        &v0, 
-                        &v1, 
-                        &d0, 
-                        &d1, 
-                        num_shares);                
-                    board.verify(&mut public_param.ctx);                    
-        
-                }
-            }
+            board.verify(&mut public_param.ctx);     
             let end = now.elapsed().as_micros();
-            elapsed_time += end;
+            elapsed_time += end;    
         }
-        println!("{}:{}\n", num_candidates*num_parallel_cores, elapsed_time);
+        println!("{}:{},\n", num_candidates, elapsed_time);
     }
     
 }
