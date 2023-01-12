@@ -20,6 +20,34 @@ pub struct Share{
     pub shares: Vec<BigNum>,
 }
 
+pub struct  ProofScalar{
+    pub com: BigNum,
+    pub e0 : BigNum, 
+    pub e1 : BigNum, 
+    pub e : BigNum, 
+    pub v0: BigNum, 
+    pub v1: BigNum, 
+    pub d0: BigNum, 
+    pub d1: BigNum,
+}
+impl ProofScalar{
+
+    pub fn new(_com: &BigNum, _e0: &BigNum, _e1: &BigNum, _e: &BigNum, _v0: &BigNum, _v1: &BigNum, _d0: &BigNum, _d1: &BigNum)->ProofScalar{
+
+        let e0 = &BigNum::new().unwrap() + _e0;
+        let e1 = &BigNum::new().unwrap() + _e1;
+        let e = &BigNum::new().unwrap() + _e;
+        let v0 = &BigNum::new().unwrap() + _v0;
+        let v1 = &BigNum::new().unwrap() + _v1;
+        let d0 = &BigNum::new().unwrap() + _d0;
+        let d1 = &BigNum::new().unwrap() + _d1;
+        let com = &BigNum::new().unwrap() + _com;
+
+        Self{com, e0, e1, e, v0, v1, d0, d1}
+
+    }
+}
+
 pub struct  Proof{
     pub coms: Vec<BigNum>,
     pub e0 : BigNum, 
@@ -49,7 +77,6 @@ impl Proof{
         }
 
         Self{coms, e0, e1, e, v0, v1, d0, d1}
-
     }
 }
 
@@ -182,6 +209,98 @@ impl Client{
     }
 
 
+    pub fn create_proof_0(&self, ctx: &mut BigNumContext)->ProofScalar{
+
+        let mut hasher = Sha3_256::new();
+        let (recons_com, recons_rand) = self.commit(&BigNum::from_u32(0).unwrap(), ctx).unwrap();
+
+        let v1 = gen_random(&self.q).unwrap();
+        let e1 = gen_random(&self.q).unwrap();
+        let b = gen_random(&self.q).unwrap();
+
+        // Messages to send to the verifier
+        let mut d1 = BigNum::new().unwrap();    
+        let mut d0 = BigNum::new().unwrap();
+
+        // d0 : Honest
+        _ = d0.mod_exp(&self.h, &b, &self.p, ctx); // h^{b}
+
+        // d1 : Cheat       
+        let mut tmp = BigNum::new().unwrap();
+        let mut tmp2 = BigNum::new().unwrap();
+        let mut tmp3 = BigNum::new().unwrap();        
+        _ = d1.mod_exp(&self.h, &v1, &self.p, ctx); // h^{v1}
+        _ = tmp.mod_exp(&recons_com, &e1, &self.p, ctx); // c^{e1}
+        _ = tmp2.mod_inverse(&tmp, &self.p, ctx); // 1/c^{e1}
+        _ = tmp3.mod_exp(&self.g, &e1, &self.p, ctx); // g^{e1}
+        d1 = (&(&d1 * &tmp2) * &tmp3).rem(&self.p); //h^{v1} x 1/c^{e1} x g^{e1}
+
+
+        // Challenge from verifier or hash if in FS mode
+        // This will be fixed 256 bit security btw -- you'd have to extend with two challenges to get 512 bits of security.
+        let mut input_to_rom = (&BigNum::new().unwrap() + &recons_com).to_vec();
+        input_to_rom.append(&mut d0.to_vec());
+        input_to_rom.append(&mut d1.to_vec());
+        hasher.update(input_to_rom); // this will take d0, d1, commitment as a byte array
+        let result = hasher.finalize();
+        let e = BigNum::from_slice(&result).unwrap().rem(&self.q);
+
+        // Final messages
+        let mut e0 = BigNum::new().unwrap();
+        _ = e0.mod_sub(&e, &e1, &self.q, ctx);         
+        let v0 = (&b + &(&e0*&recons_rand)).rem(&self.q);
+
+        return ProofScalar::new(&recons_com, &e0, &e1, &e, &v0, &v1, &d0, &d1);
+
+    }
+
+
+    pub fn create_proof_1(&self, ctx: &mut BigNumContext)->ProofScalar{
+
+        let mut hasher = Sha3_256::new();
+        let (recons_com, recons_rand) = self.commit(&BigNum::from_u32(1).unwrap(), ctx).unwrap();
+
+
+        let v0 = gen_random(&self.q).unwrap();
+        let e0 = gen_random(&self.q).unwrap();
+        let b = gen_random(&self.q).unwrap();
+
+        // Messages to send to the verifier
+        let mut d1 = BigNum::new().unwrap();    
+        let mut d0 = BigNum::new().unwrap();
+
+        // d1
+        _ = d1.mod_exp(&self.h, &b, &self.p, ctx); // h^{b}
+
+        // d0
+        _ = d0.mod_exp(&self.h, &v0, &self.p, ctx); // h^{v0}
+        let mut tmp = BigNum::new().unwrap();
+        let mut tmp2 = BigNum::new().unwrap();
+        _ = tmp.mod_exp(&recons_com, &e0, &self.p, ctx); // c^{e0}
+        _ = tmp2.mod_inverse(&tmp, &self.p, ctx); // 1/c^{e0}
+        d0 = &(&d0 * &tmp2)% &self.p; //h^{v0} x 1/c^{e0}
+
+
+        // --- ROUND 2 ------
+        // let e = ss::utils::gen_random(&public_param.q).unwrap();
+
+        // This will be fixed 256 bit security btw -- you'd have to extend with two challenges to get 512 bits of security.
+        let mut input_to_rom = (&BigNum::new().unwrap() + &recons_com).to_vec();
+        input_to_rom.append(&mut d0.to_vec());
+        input_to_rom.append(&mut d1.to_vec());
+
+        hasher.update(input_to_rom); // this will take d0, d1, commitment as a byte array
+        let result = hasher.finalize();
+        let e = BigNum::from_slice(&result).unwrap().rem(&self.q);
+
+        // --- ROUND 3 ------
+        let mut e1 = BigNum::new().unwrap();
+        _ = e1.mod_sub(&e, &e0, &self.q, ctx);         
+        let v1 = (&b + &(&e1*&recons_rand)).rem(&self.q);
+
+        return ProofScalar::new(&recons_com, &e0, &e1, &e, &v0, &v1, &d0, &d1);
+
+    }
 
 
     pub fn create_cds94_proof_for_1(&self, share_1: &Share, ctx: &mut BigNumContext)->Proof{
@@ -294,6 +413,11 @@ impl Client{
         return Proof::new(&share_1.commitments, &e0, &e1, &e, &v0, &v1, &d0, &d1);
         
     }
+
+    // pub fn create_input_proof_scalar(&self, choice: u32, ctx: &mut BigNumContext)->Proof{
+
+        
+    // }
 
 
     pub fn create_input_proof(&self, choice: u32, ctx: &mut BigNumContext)->Vec<Proof>{

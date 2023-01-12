@@ -2,7 +2,7 @@ use openssl::bn::{BigNum, BigNumContext};
 use sha3::{Digest, Sha3_256};
 use std::ops::Rem;
 pub struct Board {
-    pub coms: Vec<BigNum>, // You need to reconstruct the coms from this
+    pub com: BigNum, // You need to reconstruct the coms from this
     pub p: BigNum,
     pub q: BigNum,
     pub g: BigNum,
@@ -19,7 +19,7 @@ pub struct Board {
 
 impl Board {
     pub fn new(
-        _coms: &Vec<BigNum>,
+        _com: &BigNum,
         _p: &BigNum,
         _q: &BigNum,
         _g: &BigNum,
@@ -47,12 +47,10 @@ impl Board {
         let d0 = &BigNum::new().unwrap() + _d0;
         let d1 = &BigNum::new().unwrap() + _d1;
 
-        let mut coms = Vec::new();
-        for i in 0..num_shares {
-            coms.push(&BigNum::new().unwrap() + &_coms[i]);
-        }
+        let com = &BigNum::new().unwrap() + _com;
+
         Self {
-            coms,
+            com,
             p,
             q,
             g,
@@ -67,15 +65,12 @@ impl Board {
             num_shares,
         }
     }
+
     pub fn verify(&self, ctx: &mut BigNumContext) -> bool {
         let mut tmp = BigNum::new().unwrap();
         let mut tmp2 = BigNum::new().unwrap();
 
-        let mut recons_com = BigNum::from_u32(1).unwrap();
-        for server_idx in 0..self.num_shares {
-            recons_com = &(&recons_com * &self.coms[server_idx]) % &self.p;
-        }
-
+        let recons_com = &self.com + &BigNum::new().unwrap();
         // println!("Inside Audit:\t{}", recons_com);
 
         let mut v_hasher = Sha3_256::new();
