@@ -26,7 +26,7 @@ fn main(){
 
         let proofs = client.create_input_proof(choice, &mut public_param.ctx); // A proof for each of the coordinates 
 
-        // Go through each proof and berify it.
+        // Go through each proof and verify it.
         let mut elapsed_time = 0;
         for i in 0..num_candidates{
             let board = ss::audit::Board::new(&proofs[i as usize].coms, 

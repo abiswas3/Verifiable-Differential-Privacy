@@ -1,5 +1,4 @@
 extern crate dp_client as ss;
-
 use std::env;
 use std::time::{Instant};
 
@@ -7,7 +6,6 @@ fn main(){
     env::set_var("RUST_BACKTRACE", "1");
 
     // Modify this to do any bitstring
-
     // Parameters 
     let security_parameter = 256;
     // let num_candidates = 4; // Singe dim bin mean estimation for now
