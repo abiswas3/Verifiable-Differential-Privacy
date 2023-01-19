@@ -1,8 +1,8 @@
-# Verifiable Differential Privacy with secret sharing
+# Verifiable Differential Privacy
 
 Update: Make sure you have openssl installed.
 
-**NOTE:** This is not production ready code, used only for prototyping and generating numbers reported in the paper. To reproduce expriments in the paper see instructions below.
+**NOTE:** This is not production ready code, used only for prototyping and generating numbers reported in the paper. To reproduce expriments in the paper see instructions below. 
 
 **Update**: In this repository we simulate inter server communication in a single thread via a for loop. A more practical setting is to follow [this example](https://github.com/henrycg/heavyhitters) and setup multiple servers (and adapt the interfaace). For the purposes of prototyping we did not find this necessary.
 
