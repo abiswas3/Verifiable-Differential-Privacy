@@ -42,7 +42,7 @@ To see how to create such a proof and then its verification, run
 cargo run --example schnorr
 ```
 
-The textbook definition of a sigma protocol is **only Honest Verifier Zero-Knowledge**. It can be rendered non-interactive using the Fiat Shamir transform, which makes it ZK in the ROM model. However, the OR protocol can be made fully ZK even in the plain model.
+**NOTE**: The textbook definition of a sigma protocol is **only Honest Verifier Zero-Knowledge**. It can be rendered non-interactive using the Fiat Shamir transform, which makes it ZK in the ROM model. However, the OR protocol can be made fully ZK even in the plain model.
 
 An interactive standard sigma protocol can be made fully zero-knowledge by sampling the challenge from a set $S$ that is polynomial in the size of the security parameter. See Theorem 2 of [Maurer](https://crypto.ethz.ch/publications/files/Maurer09.pdf). A proof sketch of the simulator is provided below. A natural consequence of shrinking the challenge space is that soundness is non-negligble, but by sequential repetition, we can drive the soundness to be negligible as well.
 
