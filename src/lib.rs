@@ -13,4 +13,5 @@ pub mod public_parameters;
 
 
 pub mod elliptic;
+pub mod finite_field_coms;
 pub mod sigma_ff;

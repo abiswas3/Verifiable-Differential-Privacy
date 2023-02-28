@@ -8,7 +8,6 @@ Update: Make sure you have openssl installed.
 
 **Update**: The experiments below have a dependency on openssl as we use openssls big integer support to perform finite field operations. 
 
-
 ## Getting Started 
 
 Make sure you have a working rust and cargo installation
@@ -22,15 +21,22 @@ cargo 1.59.0
 
 ## Pedersen Commitments
 
-We tested Pedersen Commitments over subgroups of order $q$ over $Z_p^\star$ and the Ristretto curve. See the following for more details
+Pedersen commitments used in schnorr are built using a subgroup $G$ of $Z_p^\star$ where $p$ is a safe prime and $q = \frac{(p-1)}{2}$. The security bits for the size of $p$ is customisable and we use [openssl](https://docs.rs/openssl/latest/openssl/bn/struct.BigNum.html#method.generate_prime) to generate the prime number. For more details see
 
+```
+src/public_parameters.rs
+```
+
+We also played around with the curve25519_dalek::ristretto curve. 
+
+Run the following example to see how to use commitments in this library
 ```
 cargo run --example commitments
 ```
 
 ## Schnorr-Sigma OR Proof
 
-A 3 message interactive ZK proof that allows a prover to convince an efficient verifier that given $c = Com(x, r)$, $c$ is a commitment to $x=1$ or $x=0$.
+A 3 message interactive ZK proof that allows a prover to convince an efficient verifier that given $c = Com(x, r)$, $c$ is a commitment to $x=1$ or $x=0$. 
 
 To see how to create such a proof and then its verification, run 
 
@@ -58,8 +64,6 @@ where $q(c) = \Pr[A]$ and $A$ is the event that the malicious $V$ winds up sendi
 As $|S|$ is polynomial, we have for at least one $c^\star$, $q(c^\star)$ must be non-negligible. This is because the probability of the dishonest $V$ accepting when interacting with the honest prover is $\sum_{c \in S} q(c)$ and, $\sum_{c \in S} q(c)$ is negligible if $q(c)$ is negligible for all $c$
 
 Hence, the equation denoted by $(\star)$ above at least $(1/|S|) \times q(c^\star)$, which is non-negligible since $|S|$ is polynomial and $q(c^\star)$ is non-negligible. 
-
-
 
 ## How to generate numbers for the paper
 
