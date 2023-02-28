@@ -9,7 +9,7 @@ fn main(){
     // Script to understand main bottle necks of counting query in performance-- operations aren't exact. 
 
     // Parameters START
-    let security_parameter = 256;
+    let security_parameter = 3072;
     let num_shares = 4; // num_servers (but will only use one server)
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();    
     let base: i32 = 2; // an explicit type is required        
@@ -106,3 +106,4 @@ fn main(){
     println!("Single Com and group multiply:{} ms", (end as f64/num_parallel_cores as f64));
     
 }
+

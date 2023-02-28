@@ -35,9 +35,9 @@ pub fn gen_random(limit: &BigNum) -> Result<BigNum, ErrorStack> {
 
 pub fn get_generator(p:& BigNum, q:&BigNum, ctx: &mut BigNumContext)->BigNum{
 
-    let mut a = gen_random(q).unwrap();
+    let mut a = gen_random(p).unwrap();
     while  mod_exp(&a, q, p, ctx) != BigNum::from_u32(1).unwrap(){
-        a = gen_random(q).unwrap();
+        a = gen_random(p).unwrap();
     }
     return a;
 }

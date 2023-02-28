@@ -31,15 +31,15 @@ impl PublicParams{
         let mut ctx = BigNumContext::new()?;
    
         // generate prime number with 2*security bits
-        let mut p = BigNum::new()?;
-        p.generate_prime(2 * security, true, None, None)?;        
+        let mut p = BigNum::new()?;        
+        p.generate_prime(security, true, None, None)?;        
         // calculate q from p,such that q | p -1 
-        // set q = p - 1/2 and q is guaranteed to be a prime since p is a safe prime
+        // set q = (p - 1)/2 and q is guaranteed to be a prime since p is a safe prime
         let q = calculate_q(&p)?;
 
         // Get a generator for the group.
         let g = get_generator(&p, &q, &mut ctx);
-        
+        println!("Found a generator");
         // generate random secret alpha
         let alpha = gen_random(&q)?;
         // calculate h = pow(g, alpha, p)
