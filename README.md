@@ -24,12 +24,51 @@ cargo 1.59.0
 To generate numbers for Table 1, run 
 ```
 cargo run --example counting_query
+
+   Compiling dp_client v0.1.0 (/Users/ari/Projects/Verifiable-Differential-Privacy)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.31s
+     Running `target/debug/examples/counting_query`
+Found a generator
+Epsilon:	Proof Creation	Proof Verification	Number Of Coins	Morra
+452.55:	[0,	0,	1,	0]
+320.00:	[0,	0,	2,	0]
+226.27:	[0,	0,	4,	0]
+160.00:	[0,	0,	8,	0]
+113.14:	[0,	0,	16,	0]
+80.00:	[1,	1,	32,	0]
+56.57:	[2,	2,	64,	1]
+40.00:	[4,	4,	128,	2]
+28.28:	[7,	7,	256,	5]
+20.00:	[13,	13,	512,	9]
+14.14:	[25,	26,	1024,	19]
+10.00:	[51,	52,	2048,	37]
+7.07:	[103,	104,	4096,	76]
+5.00:	[206,	208,	8192,	151]
+...
 ```
 
 To generate numbers for Figure 4, run 
 
 ```
 cargo run --example prio_simulation
+
+    Finished dev [unoptimized + debuginfo] target(s) in 0.77s
+     Running `target/debug/examples/prio_simulation`
+Found a generator
+2:16,
+4:24,
+8:41,
+16:74,
+32:124,
+64:243,
+128:389,
+256:655,
+512:1167,
+1024:2310,
+2048:4606,
+4096:9234,
+8192:18360,
+
 cargo run --example poplar_simulation
 ```
 ## Schnorr-Sigma OR Proof

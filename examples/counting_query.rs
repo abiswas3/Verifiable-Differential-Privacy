@@ -9,7 +9,7 @@ fn main(){
     // Script to understand main bottle necks of counting query in performance-- operations aren't exact. 
 
     // Parameters START
-    let security_parameter = 3072;
+    let security_parameter = 512;
     let num_shares = 4; // num_servers (but will only use one server)
     let mut public_param = ss::public_parameters::PublicParams::new(security_parameter, num_shares).unwrap();    
     let base: i32 = 2; // an explicit type is required        
@@ -27,7 +27,7 @@ fn main(){
         let n_b = base.pow(i);
         let float_nb = n_b as f64;
         let tmp = (2.0/(delta* float_nb) as f64).sqrt()*10.0; // Epsilon
-        print!("{}:\t", tmp);
+        print!("{:.2}:\t", tmp);
         let now = Instant::now();                        
 
         for _ in 0..n_b/num_parallel_cores{
