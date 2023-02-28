@@ -6,11 +6,11 @@ fn main(){
     use curve25519_dalek::ristretto::RistrettoPoint;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    // use openssl::bn::{BigNum};
     use ss::converters::{u32_to_bytes};
-    // use num_bigint::{BigUint};
-    // use  secp256k1zkp::pedersen::Commitment;
 
+
+
+    
 
     let h = RistrettoPoint::from_uniform_bytes(b"this is another secret that should never be disclosed to anyone ");
     let g = constants::RISTRETTO_BASEPOINT_POINT;
@@ -20,6 +20,7 @@ fn main(){
     let (time_exp, time_mult) = com.get_timing_stats(num_trials);
     println!("Average over {} is {}, {}", num_trials, time_exp, time_mult);
 
+    println!("Checking Homomorphism");
     let mut csprng = OsRng;
     let r1: Scalar = Scalar::random(&mut csprng);    
     let msg1: [u8;32] = u32_to_bytes(3);

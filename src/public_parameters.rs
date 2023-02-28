@@ -27,6 +27,9 @@ impl fmt::Display for PublicParams {
 impl PublicParams{
 
     pub fn new(security: i32, num_shares: usize) -> Result<PublicParams, ErrorStack> {
+        
+        println!("Generating Public Parameters");
+        
         // create context to manage the bignum
         let mut ctx = BigNumContext::new()?;
    
@@ -39,15 +42,15 @@ impl PublicParams{
 
         // Get a generator for the group.
         let g = get_generator(&p, &q, &mut ctx);
-        println!("Found a generator");
+        
         // generate random secret alpha
         let alpha = gen_random(&q)?;
         // calculate h = pow(g, alpha, p)
         let mut h = BigNum::new()?;
 
         h.mod_exp(&g, &alpha, &p, &mut ctx)?;
-        
+        println!("Done\n");
         Ok(Self { num_shares, p, q, g, h, ctx })
-
+        
     }
 }

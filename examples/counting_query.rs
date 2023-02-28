@@ -6,7 +6,9 @@ use openssl::bn::BigNum;
 
 fn main(){
 
-    // Script to understand main bottle necks of counting query in performance-- operations aren't exact. 
+    // Script to understand main bottle necks of counting query in performance
+    // operations simulate performance.
+
 
     // Parameters START
     let security_parameter = 512;
@@ -15,7 +17,8 @@ fn main(){
     let base: i32 = 2; // an explicit type is required        
     let num_clients = base.pow(20);    
     let num_candidates = 2; // M
-    let num_parallel_cores = 8;
+
+    let num_parallel_cores = 8; // Simulate parallel behaviour
 
     // Parameters START
 
@@ -30,14 +33,22 @@ fn main(){
         print!("{:.2}:\t", tmp);
         let now = Instant::now();                        
 
+        // Whether the input is 1 or 0 does not matter for peformance
+         // without loss of generality assume that the prover flipped 
+         // only 1's as their private coin
+         // Thus this represents the time taken to generate n_b coins with
+         // num_parallel cores
         for _ in 0..n_b/num_parallel_cores{
-            let _= client.create_proof_1(&mut public_param.ctx); // Verifier never figures this out    
+            let _= client.create_proof_1(&mut public_param.ctx); 
         }
         let end = now.elapsed().as_millis();
         print!("[{}",end);
 
-
-        let proofs = client.create_proof_1(&mut public_param.ctx); // Verifier never figures this out    
+         // Verification is identical for 0 or 1
+         // and it is done for n_b private coins for the prover
+         // without loss of generality assume that the prover flipped 
+         // only 1's as their private coin
+        let proofs = client.create_proof_1(&mut public_param.ctx);   
         let now = Instant::now();                        
         for _ in 0..n_b/num_parallel_cores{
             let board = ss::audit::Board::new(&proofs.com, 
@@ -58,8 +69,12 @@ fn main(){
         let end = now.elapsed().as_millis();
         print!(",\t{},\t{}", end, n_b);
 
-        // Morra sample n_b random values
-        // sample them again and add them up
+        // Cost of MORRA
+        // Proceeds for n_b identical rounds
+        // 1. Generate a random number
+        // 2. Commit to random number
+        // 3. Open commitments
+        // 4. Finally aggregate K>=2 random numbers.
         let now = Instant::now();   
         for _ in 0..n_b/num_parallel_cores{
             let x = ss::utils::gen_random(&public_param.q).unwrap();
@@ -78,7 +93,7 @@ fn main(){
     }    
 
 
-    // Compute how long it takes aggregate n BigNum's
+    // Compute how long it takes aggregate n BigNum's for each server
     let now = Instant::now();                        
     let mut aggregate = BigNum::new().unwrap();
     for _ in 0..num_clients{
