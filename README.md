@@ -54,11 +54,11 @@ In Mauer's proof sketch for Theorem 2, he is suggesting that the simulator repea
 
 With this procedure, the probability that the simulator picks a $c$ such that the dishonest verifier V would have actually sent $c$ in response to the first-message being $a$, and such that V would have accepted $(a, c, z)$ is:
 
-$$ \star = \sum_{c in S} \Pr[\text{simulator picks challenge c}] \times q(c)$$
+$$ \star = \sum_{c \in S} \Pr[\text{simulator picks challenge c}] \times q(c)$$
 
 
 where $q(c) = \Pr[A]$ and $A$ is the event that the malicious $V$ winds up sending challenge $c$ when interacting with honest prover, and accepting the resulting transcript
 
-As $|S|$ is polynomial, we have for at least one $c^\star$, $q(c^\star)$ must be non-negligible. This is because the probability of the dishonest $V$ accepting when interacting with the honest prover is $\sum_{c in S} q(c)$ and, $\sum_{c in S} q(c)$ is negligible if $q(c)$ is negligible for all $c$
+As $|S|$ is polynomial, we have for at least one $c^\star$, $q(c^\star)$ must be non-negligible. This is because the probability of the dishonest $V$ accepting when interacting with the honest prover is $\sum_{c \in S} q(c)$ and, $\sum_{c \in S} q(c)$ is negligible if $q(c)$ is negligible for all $c$
 
 Hence, the equation denoted by $(\star)$ above at least $(1/|S|) \times q(c^\star)$, which is non-negligible since $|S|$ is polynomial and $q(c^\star)$ is non-negligible. 
