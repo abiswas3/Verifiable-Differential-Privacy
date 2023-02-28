@@ -57,15 +57,8 @@ With this procedure, the probability that the simulator picks a $c$ such that th
 $$ \star = \sum_{c in S} \Pr[\text{simulator picks challenge c}] \times q(c)$$
 
 
-where $q(c)$ equals: 
+where $q(c) = \Pr[A]$ and $A$ is the event that the malicious $V$ winds up sending challenge $c$ when interacting with honest prover, and accepting the resulting transcript
 
+As $|S|$ is polynomial, we have for at least one $c^\star$, $q(c^\star)$ must be non-negligible. This is because the probability of the dishonest $V$ accepting when interacting with the honest prover is $\sum_{c in S} q(c)$ and, $\sum_{c in S} q(c)$ is negligible if $q(c)$ is negligible for all $c$
 
-$\Pr[\tex{the malicious V winds up sending challenge c when interacting with honest prover, and accepting the resulting transcript}]$.
-
-
-For at least one $c^\star$, $q(c^\star)$ must be non-negligible. This is because the probability of the dishonest V accepting when interacting with the honest prover is $\sum_{c in S} q(c)$
-
-This is negligible if $q(c)$ is negligible for all $c$, and $|S|$ is polynomial.
-
-
-Hence, $(\star)$ is at least $(1/|S|) \times q(c^\star)$, which is non-negligible since $|S|$ is polynomial and $q(c^\star)$ is non-negligible. 
+Hence, the equation denoted by $(\star)$ above at least $(1/|S|) \times q(c^\star)$, which is non-negligible since $|S|$ is polynomial and $q(c^\star)$ is non-negligible. 
