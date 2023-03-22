@@ -2,15 +2,16 @@
 extern crate rand;
 
 
-pub mod verifiable_client;
+// pub mod verifiable_client;
 pub mod audit;
-pub mod prio;
-pub mod poplar;
-pub mod beaver_triple;
+// pub mod prio;
+// pub mod poplar;
+// pub mod beaver_triple;
 pub mod utils;
 pub mod converters;
 pub mod public_parameters;
-
+pub mod generic_commitments;
+pub mod client;
 
 pub mod elliptic;
 pub mod finite_field_coms;

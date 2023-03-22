@@ -2,8 +2,6 @@ use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
 use std::ops::Rem;
 use crate::utils::{gen_random, mod_exp};
-use sha3::{Digest, Sha3_256};
-use rand::Rng;
 use crate::sigma_ff::{Proof, ProofScalar};
 
 pub struct Client{

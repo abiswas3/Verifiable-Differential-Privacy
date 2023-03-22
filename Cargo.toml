@@ -30,7 +30,10 @@ num-integer = {version = "0.1.42", features = ["std", "i128"]}
 grin_secp256k1zkp = "*"
 
 [dev-dependencies]
-# criterion = "0.3"
+criterion = "0.4"
 serde = "*"
 serde_json = "*"
 
+[[bench]]
+name = "ccs_benchmarks"
+harness = false

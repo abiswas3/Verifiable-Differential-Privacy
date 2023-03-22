@@ -1,7 +1,6 @@
 // use rand_core::{OsRng};
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use std::time::{Instant};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 // use crate::utils::{print_array};
 
@@ -26,31 +25,31 @@ impl Commitment {
         return bytes;
     }
 
-    pub fn get_timing_stats(&self, num_trials: usize)->(u128, u128){
+    // pub fn get_timing_stats(&self, num_trials: usize)->(u128, u128){
 
-        // let mut csprng = OsRng;
-        let mut time_exp: u128 = 0;
-        let mut time_mult = 0;
-        for _ in 0..num_trials{
-            // let r: Scalar = Scalar::random(&mut csprng);
+    //     // let mut csprng = OsRng;
+    //     let mut time_exp: u128 = 0;
+    //     let mut time_mult = 0;
+    //     for _ in 0..num_trials{
+    //         // let r: Scalar = Scalar::random(&mut csprng);
 
-            let msg = self.get_random_byte_array();
+    //         let msg = self.get_random_byte_array();
             
-            let m = Scalar::from_bytes_mod_order(msg);
-            let now = Instant::now();        
-            let gm = &m * &self.g;
-            let end = now.elapsed().as_micros();            
-            time_exp += end;
+    //         let m = Scalar::from_bytes_mod_order(msg);
+    //         let now = Instant::now();        
+    //         let gm = &m * &self.g;
+    //         let end = now.elapsed().as_micros();            
+    //         time_exp += end;
 
-            let now = Instant::now();        
-            let _ = &gm + &self.g;
-            let end = now.elapsed().as_micros();            
-            time_mult += end;
+    //         let now = Instant::now();        
+    //         let _ = &gm + &self.g;
+    //         let end = now.elapsed().as_micros();            
+    //         time_mult += end;
 
-        }
+    //     }
 
-        return (time_exp/(num_trials as u128), time_mult/(num_trials as u128));
-    }
+    //     return (time_exp/(num_trials as u128), time_mult/(num_trials as u128));
+    // }
 
     pub fn commit(&self, message: &[u8; 32], r: Scalar) -> RistrettoPoint {
 
