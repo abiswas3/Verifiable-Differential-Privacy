@@ -20,7 +20,7 @@ fn main(){
     for _ in 0..num_clients{
         let (x,r) = client.send_input_to_sever();
         inputs.push((x, r));
-        let com = client.com.commit(&x.to_bytes(), r);
+        let com = client.com.commit(x, r);
         coms_to_inputs.push(com);
     }
 
@@ -32,7 +32,7 @@ fn main(){
         coms_sum = coms_sum + coms_to_inputs[i];
     }
 
-    let lhs = client.com.commit(&x_sum.as_bytes(), r_sum);
+    let lhs = client.com.commit(x_sum, r_sum);
     let rhs = coms_sum;
     
     assert_eq!(lhs, rhs);
@@ -57,7 +57,7 @@ fn main(){
         let b = flip();
         if b{
             private_bits.push((Scalar::one(), Scalar::one() - r));
-            let com_one = server.com.commit(&Scalar::one().as_bytes(),
+            let com_one = server.com.commit(Scalar::one(),
                                                           Scalar::one());
             coms_to_bits.push(&com_one - &transcript.com);
         }
@@ -79,7 +79,7 @@ fn main(){
     let x = x_sum + v_sum; // Input Agg + Noise
     let r = r_sum + s_sum; // Keys added up
 
-    let lhs = client.com.commit(&x.as_bytes(), r);
+    let lhs = client.com.commit(x, r);
     let rhs = coms_sum + v_coms_sum;
 
     assert_eq!(lhs, rhs);

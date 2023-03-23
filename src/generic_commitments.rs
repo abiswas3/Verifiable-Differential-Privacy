@@ -4,17 +4,16 @@ use curve25519_dalek::scalar::Scalar;
 use rand_core::OsRng;
 use sha3::{Digest, Sha3_256};
 use crate::sigma_ff::{ProofScalar};
-use crate::converters::u32_to_bytes;
+// use crate::converters::u32_to_bytes;
 
 pub trait Commitment<X, Y>{
 
     fn sample_randomness(&self)->X;
-    fn commit(&self, message: &[u8; 32], randomness: X)->Y;
-    fn open(&self, message: &[u8; 32], randomness: X, com: Y)->bool;
+    fn commit(&self, message: X, randomness: X)->Y;
+    fn open(&self, message: X, randomness: X, com: Y)->bool;
 }
 
 pub trait SecretSharing{
-
     fn share(&self, message: &[u8; 32], num_shares: usize)->Vec<[u8;32]>;
     fn reconstruct(&self, shares: &Vec<[u8; 32]>, num_shares: usize)->[u8; 32];
 }
@@ -33,7 +32,7 @@ impl CurveCommitment{
 
         // create FIAT shamir proof for when the secret is 0
         // let mut hasher = Sha3_256::new();
-        let com = self.commit(&u32_to_bytes(0), rand);
+        let com = self.commit(Scalar::zero(), rand);
         let v1 = self.sample_randomness();
         let e1 = self.sample_randomness();
         let b = self.sample_randomness();
@@ -69,7 +68,7 @@ impl CurveCommitment{
         // create FIAT shamir proof for when the secret is 0
         // let mut hasher = Sha3_256::new();
         let rand: Scalar = self.sample_randomness();
-        let com = self.commit(&u32_to_bytes(1), rand);
+        let com = self.commit(Scalar::one(), rand);
 
         let v0 = self.sample_randomness();
         let e0 = self.sample_randomness();
@@ -109,20 +108,16 @@ impl Commitment<Scalar, RistrettoPoint> for CurveCommitment{
         return Scalar::random(&mut csprng);
 
     }
-    fn commit(&self, message: &[u8; 32], randomness: Scalar)->RistrettoPoint {
-        
-        let message_copy: [u8;32] = message.clone();
-        // let message_copy = message.as_bytes().to_vec() as [u8; 32];
-        let m = Scalar::from_canonical_bytes(message_copy).unwrap();        
-        
-        let gm = &m * &self.g;
+    fn commit(&self, message: Scalar, randomness: Scalar)->RistrettoPoint {
+                
+        let gm = &message * &self.g;
         let hr = &randomness * &self.h;
     
         let ans = gm + hr;
         return ans
     }
 
-    fn open(&self, message: &[u8; 32], randomness: Scalar, com: RistrettoPoint)->bool {
+    fn open(&self, message: Scalar, randomness: Scalar, com: RistrettoPoint)->bool {
         return self.commit(message, randomness) == com;
     }
 

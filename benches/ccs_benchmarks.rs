@@ -5,24 +5,19 @@ use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use rand_core::OsRng;
 use::dp_client::generic_commitments::{Commitment, CurveCommitment};
-// use std::ops::Rem;
-use rand::Rng;
 
 pub fn aux_ecc_commitments(com: &CurveCommitment){
-    
-    let msg: [u8;32] = rand::thread_rng().gen::<[u8; 32]>();
-    println!("{:?}", msg);
+        
     let mut csprng = OsRng;
+    let msg: Scalar = Scalar::random(&mut csprng);
     let r: Scalar = Scalar::random(&mut csprng);
-    com.commit(&msg, r);
+    com.commit(msg, r);
 }
 pub fn ecc_commitment(c: &mut Criterion) {
 
     let h = RistrettoPoint::from_uniform_bytes(b"this is another secret that should never be disclosed to anyone ");
     let g = constants::RISTRETTO_BASEPOINT_POINT;
-    let com = ss::generic_commitments::CurveCommitment{g, h};
-    
-
+    let com = ss::generic_commitments::CurveCommitment{g, h};    
     c.bench_function("Ristretto Coms", |b| b.iter(|| aux_ecc_commitments(&com)));
 }
 
@@ -83,7 +78,7 @@ pub fn aux_com_agg()->bool{
     for _ in 0..num_clients{
         let (x,r) = client.send_input_to_sever();
         inputs.push((x, r));
-        let com = client.com.commit(&x.to_bytes(), r);
+        let com = client.com.commit(x, r);
         coms_to_inputs.push(com);
     }
 
@@ -95,7 +90,7 @@ pub fn aux_com_agg()->bool{
         coms_sum = coms_sum + coms_to_inputs[i];
     }
 
-    let lhs = client.com.commit(&x_sum.as_bytes(), r_sum);
+    let lhs = client.com.commit(x_sum, r_sum);
     let rhs = coms_sum;
     return lhs == rhs; 
 

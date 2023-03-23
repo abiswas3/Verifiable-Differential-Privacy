@@ -1,6 +1,7 @@
 use curve25519_dalek::{ristretto::RistrettoPoint};
 use curve25519_dalek::constants;
 use ss::generic_commitments::Commitment;
+use ss::sigma_ff::ProofScalar;
 extern crate dp_client as ss;
 use std::time::{Instant};
 
@@ -13,14 +14,18 @@ fn main(){
     // Clients send input to servers while publicly committing to input
     let client = ss::participants::Client::new(num_shares, g, h);
     let verifier = ss::participants::Board{g, h};
+    let n_b = 262144;
 
-    for _ in 0..100{
-        
+    let mut proofs: Vec<ProofScalar> = Vec::new();
+    for _ in 0..n_b{        
         let r = client.com.sample_randomness();
-        let transcript = client.com.create_proof_0(r);
-        let now = Instant::now();
-        _ = verifier.verify(&transcript);
-        let end = now.elapsed().as_micros();
-        println!("{}", end);
+        proofs.push(client.com.create_proof_0(r));
+    }    
+
+    let now = Instant::now();
+    for i in 0..n_b{                
+        _ = verifier.verify(&proofs[i]);
     }   
+    let end = now.elapsed().as_millis();
+    println!("Time taken to sequentially verify {} proofs {} ms", n_b, end);
 }

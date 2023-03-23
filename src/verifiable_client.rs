@@ -2,7 +2,6 @@ use openssl::bn::{BigNum, BigNumContext};
 use openssl::error::ErrorStack;
 use std::ops::Rem;
 use crate::utils::{gen_random, mod_exp};
-use crate::sigma_ff::{Proof, ProofScalar};
 
 pub struct Client{
     num_servers: usize,
