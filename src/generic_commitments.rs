@@ -29,11 +29,10 @@ impl CurveCommitment{
         return Self{g, h};
     }   
 
-    pub fn create_proof_0(&self)->ProofScalar{
+    pub fn create_proof_0(&self, rand: Scalar)->ProofScalar{
 
         // create FIAT shamir proof for when the secret is 0
         // let mut hasher = Sha3_256::new();
-        let rand: Scalar = self.sample_randomness();
         let com = self.commit(&u32_to_bytes(0), rand);
         let v1 = self.sample_randomness();
         let e1 = self.sample_randomness();
