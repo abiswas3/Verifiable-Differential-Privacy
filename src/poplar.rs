@@ -4,10 +4,7 @@ use std::fmt;
 use crate::utils::{gen_random};
 
 pub struct Server{
-    pub p: BigNum, // Diffie Hellman sub group G_q in Z_p*
     pub q: BigNum, // order of diffie Hellman group G
-    pub g: BigNum, // generator for G
-    pub h: BigNum, // random element of G such that it is hard to solve h = g^\alpha for random \alpha
     pub num_candidates: usize,
     pub num_servers: usize,    
 }
@@ -16,32 +13,23 @@ pub struct Server{
 // https://stackoverflow.com/questions/27589054/what-is-the-correct-way-to-use-lifetimes-with-a-struct-in-rust
 // Good discussion about lifetimes of references
 pub struct Share{
-    pub commitments: Vec<BigNum>,
-    pub randomness: Vec<BigNum>,
     pub shares: Vec<BigNum>,
 }
 
 impl fmt::Display for  Server {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Server")
-            .field("p", &self.p)
             .field("q", &self.q)
-            .field("g", &self.g)
-            .field("h", &self.h)
             .finish()
     }
 }
 
 impl Server{
 
-    pub fn new(num_servers:usize, num_candidates: usize, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Server {
+    pub fn new(num_servers:usize, num_candidates: usize, _q: &BigNum) -> Server {
        
-        let p = &BigNum::new().unwrap() + _p;
         let q = &BigNum::new().unwrap() + _q;
-        let g = &BigNum::new().unwrap() + _g;
-        let h = &BigNum::new().unwrap() + _h;
-                
-        Self{p, q, g, h, num_candidates, num_servers}
+        Self{q, num_candidates, num_servers}
     }
 
     pub fn multiply_first(&self, x_i: &BigNum, y_i: &BigNum, a_i: &BigNum, b_i: &BigNum, ctx: &mut BigNumContext)->(BigNum, BigNum){
@@ -130,14 +118,14 @@ fn test_sketching(){
     let mut public_param = PublicParams::new(security_parameter, num_shares).unwrap();
     println!("{}", public_param);
 
-    let client = Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);    
-    let choice = client.generate_random_vote(num_candidates as u32);       
+    let client = Client::new(num_shares, num_candidates as u32,  &public_param.q);    
+    let choice = client.generate_fake_vote();       
     let vote = client.vote(choice, &mut public_param.ctx);
     let kvote = client.poplar_vote(choice, &mut public_param.ctx);
 
     let mut servers = Vec::new();
     for _ in 0..num_shares{
-        let server = Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+        let server = Server::new(num_shares, num_candidates,  &public_param.q);
         servers.push(server);
     }
 

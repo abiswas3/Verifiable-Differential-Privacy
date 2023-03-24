@@ -2,9 +2,9 @@
 extern crate rand;
 
 
-// pub mod verifiable_client;
-// pub mod prio;
-// pub mod poplar;
+pub mod verifiable_client;
+pub mod prio;
+pub mod poplar;
 pub mod beaver_triple;
 pub mod utils;
 pub mod converters;

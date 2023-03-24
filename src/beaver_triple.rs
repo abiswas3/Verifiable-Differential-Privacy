@@ -46,7 +46,7 @@ fn test_beaver_mult(){
     let mut public_param = PublicParams::new(security_parameter, num_shares).unwrap();
     println!("{}", public_param);
 
-    let server1 = Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+    let server1 = Server::new(num_shares, num_candidates, &public_param.q);
 
     let beaver_triples = BeaverTriple::new(num_shares, &public_param.q, &mut public_param.ctx);
     let a_shares = beaver_triples.a_shares;

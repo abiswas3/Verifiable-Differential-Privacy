@@ -1,42 +1,30 @@
 use openssl::bn::{BigNum, BigNumContext};
-use openssl::error::ErrorStack;
-use std::ops::Rem;
-use crate::utils::{gen_random, mod_exp};
+use crate::utils::{gen_random};
 
 pub struct Client{
     num_servers: usize,
     num_candidates: u32,
-    p: BigNum,
     q: BigNum,
-    g: BigNum,
-    h: BigNum,
     pub kappa: BigNum    
 }
 pub struct Share{
-    pub commitments: Vec<BigNum>,
-    pub randomness: Vec<BigNum>,
     pub shares: Vec<BigNum>,
 }
 
 
 impl Client{
 
-    pub fn new(num_servers: usize, num_candidates: u32, _p: &BigNum, _q: &BigNum, _g: &BigNum, _h: &BigNum) -> Client {
+    pub fn new(num_servers: usize, num_candidates: u32, _q: &BigNum) -> Client {
        
-        let p = &BigNum::new().unwrap() + _p;
+        
         let q = &BigNum::new().unwrap() + _q;
-        let g = &BigNum::new().unwrap() + _g;
-        let h = &BigNum::new().unwrap() + _h;
         
         let kappa = gen_random(_q).unwrap();
-        Self{num_servers, num_candidates, p, q, g, h, kappa}
+        Self{num_servers, num_candidates, q, kappa}
     }
 
-    pub fn generate_random_vote(&self, num_candidates: u32)->u32{
-
-        let mut rng = rand::thread_rng();
-    
-        return rng.gen_range(0..num_candidates);
+    pub fn generate_fake_vote(&self)->u32{
+        return 1;
     } 
         
     pub fn vote(&self, vote: u32, ctx: &mut BigNumContext)->Vec::<Share>{
@@ -89,46 +77,14 @@ impl Client{
         
     }
 
-    pub fn commit(&self, x: &BigNum,  ctx: &mut BigNumContext) -> Result<(BigNum, BigNum), ErrorStack> {
-
-        let r = gen_random(&self.q).unwrap();
-        let c = self.helper(&x, &r, ctx)?;
-        Ok((c, r))
-    }
-
-    pub fn helper(& self, x1: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<BigNum, ErrorStack> {
-        // returns g^x1h^r        
-        let tmp3 = mod_exp(&self.g, x1, &self.p, ctx);
-        let tmp4 = mod_exp(&self.h, r, &self.p, ctx);                
-        return Ok((&(tmp3) * &(tmp4)).rem(&self.p));        
-    }  
-    pub fn mult_commitments(&mut self, cm: &[&BigNum]) -> Result<BigNum, ErrorStack> {
-        // Multiply arry of commitments cm
-        let res = (cm.iter().fold(BigNum::from_u32(1)?, |acc, x| &acc * *x)).rem(&self.p);
-        Ok(res)
-    }   
-    pub fn open(&self, c: &BigNum, x: &BigNum, r: &BigNum, ctx: &mut BigNumContext) -> Result<bool, ErrorStack> {
-        // c: commitment
-        // x: the secret
-        // r: array of randomness
-        
-        let res = self.helper(&x, &r, ctx)?;    
-        Ok(&res == c)
-    } 
-
     pub fn share(&self, _secret: &BigNum, ctx: &mut BigNumContext)->Share{
 
         let mut shares = Vec::new();
-        let mut commitments = Vec::new();
-        let mut randomness = Vec::new();
 
         for _ in 1..(self.num_servers){            
             let tmp = gen_random(&self.q).unwrap(); 
-            let (com, r) = self.commit(&tmp, ctx).unwrap();
 
             shares.push(tmp);
-            commitments.push(com);
-            randomness.push(r); 
         }
         
         let secret = &BigNum::new().unwrap() + _secret;
@@ -136,13 +92,9 @@ impl Client{
         let mut last_share = BigNum::new().unwrap();
         _ = last_share.mod_sub(&secret, &total, &self.q, ctx);
         
-        let (com, r) = self.commit(&last_share, ctx).unwrap(); 
         shares.push(last_share);
-        commitments.push(com);
-        randomness.push(r); 
 
-        return Share{commitments: commitments, 
-            randomness: randomness,
+        return Share{ 
             shares: shares
         };
     }

@@ -89,7 +89,6 @@ impl Server{
 
         let mut csprng = OsRng;
         let r: Scalar = Scalar::random(&mut csprng);
-
         return r;
     }
 

@@ -17,13 +17,9 @@ cargo 1.63.0 (fd9c4297c 2022-07-01)
 
 ## Pedersen Commitments
 
-Pedersen Commitments are the fundamental primitive used to implement further complex primitives in this paper. It is implemented on top of the [Ristretto Curve]() and details about implementation can be found in 
+Pedersen Commitments are the fundamental primitive used to implement further complex primitives in this paper. It is implemented on top of the [Ristretto Curve]() and details about implementation can be found in src/generic_commitments.rs
 
-```
-src/generic_commitments.rs
-```
-
-To see time taken to commit to a random 256 bit integer run the following command
+To estimate the time taken to commit to a single random 256 bit integer using a 256 bit random integer over the Ristretto curve, run the following command
 
 ```
 cargo run --example commitment --release
@@ -35,49 +31,64 @@ cargo run --example commitment --release
 
 The experiments in this section could be embarassingly parallelised if needed. Thus the numbers reported here are pessimistic as they are estimates of sequential exeriments. Setting parameters: 
 + the number of clients $n=10^6$, 
-+ privacy parameters $\epsilon=0.0.05$ and $\delta$ = 10^-10$, results in $\eta_b = 262144$ private coins.
++ privacy parameters $\epsilon=0.095$ and $\delta = 10^-10$, results in $\eta_b = 262144$ private coins.
 
+![Table I](assets/tableI.png)
 
 ### Aggregating Finite Field Elements
 
-Time Taken to add 1000000 + 262144 = 1262144 integers;
+To change the parameters change $n, n_b$ in examples/aggregation.rs
 
 ```
 cargo run --example aggregation --release
+
+   Compiling dp_client v0.1.0 (/Users/aribiswas/projects/Verifiable-Differential-Privacy)
+    Finished release [optimized] target(s) in 0.39s
+     Running `target/release/examples/aggregation`
+Time Taken to add 1000000 + 262144 = 1262144 integers; 79ms
 ```
-
-To change the parameters change $n, n_b$ in examples/aggregation.rs
-
 
 ### Proof Creation
 
+The time taken to create a sigma proof for one private bit is 496 microseconds. The following script estimates the time to create $n_b=262144$ proofs sequentially
 ```
- cargo run --example fiat_shamir_creation --release
+cargo run --example fiat_shamir_creation --release
 ```
 
 
 ### Proof Verification
 
+The time taken to verify a sigma proof for one private bit is  401 microseconds. The following script estimates the time to verify $n_b=262144$ proofs sequentially
+
 ```
- cargo run --example fiat_shamir_verification --release
+cargo run --example fiat_shamir_verification --release
 ```
 
 ### Aggregating Group Elements
 
-Time Taken to add 1000000 + 262144 = 1262144 points in the ristretto curve;
+Time Taken to add 1000000 + 262144 = 1262144 points in the ristretto curve; To change the parameters change $n, n_b$ in examples/com_aggregation.rs
 
 ```
 cargo run --example com_aggregation --release
 ```
 
-To change the parameters change $n, n_b$ in examples/com_aggregation.rs
-
-
 ## Figure I: Latency vs Privacy Parameter
+
 
 ```
  cargo run --example privacy_vs_latency --release
+
+    Finished release [optimized] target(s) in 0.15s
+     Running `target/release/examples/privacy_vs_latency`
+Time taken to sequentially create proofs for epsilon: 3.0438846293698814 or (256 coins) := 85 ms
+Time taken to sequentially create proofs for epsilon: 2.1523514625769438 or (512 coins) := 103 ms
+Time taken to sequentially create proofs for epsilon: 1.5219423146849407 or (1024 coins) := 204 ms
+Time taken to sequentially create proofs for epsilon: 1.0761757312884719 or (2048 coins) := 408 ms
+Time taken to sequentially create proofs for epsilon: 0.7609711573424703 or (4096 coins) := 819 ms 
+...
 ```
+
+This can take a while to run. Alternately, one can use the time taken to create/verify a single proof and extrapolate the time taken to run it $n$ times sequentially.
 
 ## Figure II: Comparison With Prio And Poplar
 

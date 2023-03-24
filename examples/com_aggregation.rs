@@ -17,7 +17,9 @@ fn main(){
 
     let n_b = 262144;
     let n = 1000000;
+
     let mut coms_to_inputs : Vec<RistrettoPoint> = Vec::new();    
+    println!("Creating {} + {} = {} random commitments (points on the curve)",n, n_b, (n + n_b));
     for _ in 0..(n + n_b){
         let x = Scalar::random(&mut csprng);
         let r = Scalar::random(&mut csprng);
@@ -25,6 +27,7 @@ fn main(){
         coms_to_inputs.push(com);
     }
 
+    println!("Starting to aggregate");
     let mut answer = coms_to_inputs[0];
     let now = Instant::now();    
     for i in 1..(n + n_b){

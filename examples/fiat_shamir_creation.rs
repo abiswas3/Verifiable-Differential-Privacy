@@ -13,11 +13,13 @@ fn main(){
     // Clients send input to servers while publicly committing to input
     let client = ss::participants::Client::new(num_shares, g, h);
     let n_b = 262144;
+    // let n_b = 1;
     let now = Instant::now();
     for _ in 0..n_b{        
         let r = client.com.sample_randomness();
         let _ = client.com.create_proof_0(r);
     }
-    let end = now.elapsed().as_millis();
-    println!("Time taken to sequentially verify {} proofs {} ms", n_b, end);
+    let end = now.elapsed();
+    println!("Time taken to sequentially create {} proofs {} ms", n_b, end.as_millis());
+    println!("Time taken to sequentially create {} proofs {} mu(s)", n_b, end.as_micros());    
 }

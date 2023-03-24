@@ -17,19 +17,19 @@ fn main(){
     let mut public_param = PublicParams::new(security_parameter, num_shares).unwrap();
     // println!("{}", public_param);
 
-    for i in 0..14{
+    for i in 1..14{
         let base: i32 = 2; // an explicit type is required        
         let num_candidates = base.pow(i) as usize;
         let mut elapsed_time = 0;
 
-        let client = Client::new(num_shares, num_candidates as u32, &public_param.p, &public_param.q, &public_param.g, &public_param.h);    
-        let choice = client.generate_random_vote(num_candidates as u32);       
+        let client = Client::new(num_shares, num_candidates as u32, &public_param.q);    
+        let choice = client.generate_fake_vote();       
         let vote = client.vote(choice, &mut public_param.ctx);
         let kvote = client.poplar_vote(choice, &mut public_param.ctx);
     
         let mut servers = Vec::new();
         for _ in 0..num_shares{
-            let server = Server::new(num_shares, num_candidates, &public_param.p, &public_param.q, &public_param.g, &public_param.h);
+            let server = Server::new(num_shares, num_candidates, &public_param.q);
             servers.push(server);
         }
     
