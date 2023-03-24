@@ -42,10 +42,6 @@ To change the parameters change $n, n_b$ in examples/aggregation.rs
 ```
 cargo run --example aggregation --release
 
-   Compiling dp_client v0.1.0 (/Users/aribiswas/projects/Verifiable-Differential-Privacy)
-    Finished release [optimized] target(s) in 0.39s
-     Running `target/release/examples/aggregation`
-Time Taken to add 1000000 + 262144 = 1262144 integers; 79ms
 ```
 
 ### Proof Creation
