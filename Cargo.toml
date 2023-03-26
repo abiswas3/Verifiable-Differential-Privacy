@@ -13,24 +13,17 @@ keywords = [
   "differential privacy"
 ]
 [dependencies]
-# rand = "0.8.5"
 coinflip = "*"
 rand= { package = "rand", version = "0.8.5" }
 rand_core = { version = "0.5.1"}
-sha2 = "*"
 openssl-sys = "0.9"
 openssl = "0.10"
 time = "*"
 curve25519-dalek = "3"
 sha3 = "*"
-num-bigint = {version = "0.4.3", features = ["rand"]}
-num-traits = "0.2.11"
-
 
 [dev-dependencies]
 criterion = "0.4"
-serde = "*"
-serde_json = "*"
 
 [[bench]]
 name = "ccs_benchmarks"
