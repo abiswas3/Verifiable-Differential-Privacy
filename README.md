@@ -19,7 +19,7 @@ cargo 1.63.0 (fd9c4297c 2022-07-01)
 
 Pedersen Commitments are the fundamental primitive used to implement further complex primitives in this paper. It is implemented on top of the [Ristretto Curve]() and details about implementation can be found in src/generic_commitments.rs
 
-To estimate the time taken to commit to a single random 256 bit integer using a 256 bit random integer over the Ristretto curve, run the following command
+To estimate the time taken to commit to a single random 256 bit integer over the Ristretto curve, run the following command
 
 ```
 cargo run --example commitment --release
