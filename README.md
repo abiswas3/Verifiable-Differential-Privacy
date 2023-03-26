@@ -89,7 +89,7 @@ This can take a while to run. Alternately, one can use the time taken to create/
 
 ## Figure II: Comparison With Prio And Poplar
 
-To get numbers for Prio and Poplar run the following commands. The numbers for the OR proof can be easily adapted from the scripts above
+To get numbers for Prio and Poplar run the following commands. 
 
 ```
 cargo run --example prio_simulation --release
@@ -98,3 +98,4 @@ cargo run --example poplar_simulation --release
 
 ![Comparison of Verification times](assets/FigureII.png)
 
+The numbers for the OR proof can be easily retrieved by changing the value of the variable n_b in examples/fiat_shamir_verification.rs and examples/fiat_shamir_creation.rs
