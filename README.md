@@ -2,8 +2,6 @@
 
 **NOTE:** This is not production ready code, used only for prototyping and generating numbers reported in the paper. To reproduce expriments in the paper see instructions below. 
 
-**NOTE**: In this repository we simulate inter server communication in a single thread via a for loop. A more practical setting is to follow [this example](https://github.com/henrycg/heavyhitters) and setup multiple servers (and adapt the interface). For the purposes of this paper we did not find this necessary as it would not lend us any new insights.
-
 ## Getting Started 
 
 Make sure you have a working rust and cargo installation
