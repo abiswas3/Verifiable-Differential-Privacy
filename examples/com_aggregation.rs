@@ -18,11 +18,17 @@ fn main(){
     let n_b = 262144;
     let n = 1000000;
 
+    // let n_b = 100;
+    // let n = 1000;
     let mut coms_to_inputs : Vec<RistrettoPoint> = Vec::new();    
     println!("Creating {} + {} = {} random commitments (points on the curve)",n, n_b, (n + n_b));
+    let mut x_sum: Scalar = Scalar::from_bits([0; 32]);
+    let mut r_sum: Scalar = Scalar::from_bits([0; 32]);
     for _ in 0..(n + n_b){
-        let x = Scalar::random(&mut csprng);
+        let x = Scalar::from_bits([1; 32]);
         let r = Scalar::random(&mut csprng);
+        x_sum += x;
+        r_sum += r;
         let com = client.com.commit(x, r);
         coms_to_inputs.push(com);
     }
@@ -34,7 +40,8 @@ fn main(){
         answer = answer + coms_to_inputs[i];
     }    
     let end = now.elapsed().as_millis();
-    println!("Time Taken to add {} + {} = {} integers; {} ms", n, n_b, (n + n_b), end);
 
+    assert_eq!(client.com.commit(x_sum, r_sum), answer);
+    println!("Time Taken to add {} + {} = {} integers; {} ms", n, n_b, (n + n_b), end);
 
 }

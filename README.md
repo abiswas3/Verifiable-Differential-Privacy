@@ -66,6 +66,14 @@ Time Taken to add 1000000 + 262144 = 1262144 points in the ristretto curve; To c
 cargo run --example com_aggregation --release
 ```
 
+### Morra
+
+Time Taken generate  262144 fair public coins; To change the parameters change $n_b$ in examples/morra.rs
+
+```
+cargo run --example morra --release
+```
+
 ## Figure I: Latency vs Privacy Parameter
 
 ![Comparison of Verification times](assets/FigureI.png)
