@@ -27,14 +27,20 @@ impl Board {
 
         let n = commitments.len();
         // let r_zero = Scalar::zero();
-        let base: i32 = 2; // an explicit type is required
+        let base: u32 = 2; // an explicit type is required
 
-        for i in 0..n{
-            // let mut tmp_bytes: [u8; 32] = [0; 32];            
-            let tmp: u128 = base.pow(i as u32) as u128;
-            println!("{}", tmp);
+        let mut agg_com: RistrettoPoint = &Scalar::one() * &commitments[0];
+
+        for i in 1..n{
+            let mut tmp_bytes: [u8; 32] = [0; 32];            
+            let tmp = base.pow(i as u32).to_ne_bytes();
+            for j in 0..4{
+                tmp_bytes[j] = tmp[j];
+            }
+            let tmp_scalar = Scalar::from_bits(tmp_bytes);
+            agg_com = agg_com + (&tmp_scalar * &commitments[i]);            
         }
-        return self.g;
+        return agg_com;
     }
 
     pub fn verify(&self, transcript: &ProofScalar) -> bool {
@@ -115,15 +121,33 @@ impl Server{
         Self { num_shares: num_shares, g: g, h: h, com: com, openings:Vec::new() } 
     }
 
-    pub fn get_opening(&self, opening_idx: usize, challenge_idx:usize)->u8{
+    pub fn get_opening(&self, opening_idx: usize, challenge_idx:usize)->(Scalar, Scalar){
 
-        let (tmp, _) = self.openings[opening_idx][challenge_idx];
-        if tmp == Scalar::one(){
-            return  1;
+        return self.openings[opening_idx][challenge_idx];        
+
+    }
+
+    pub fn geometric_opening(&self, verifier_challenge_indices: Vec<usize>)->(Scalar, Scalar){
+
+        let n = self.openings.len();
+        let base: u32 = 2; // an explicit type is required
+
+        let mut agg = Scalar::zero();
+        let mut agg_rand = Scalar::zero();
+        for i in 1..n{
+            let mut tmp_bytes: [u8; 32] = [0; 32];            
+            let tmp = base.pow(i as u32).to_ne_bytes();
+            for j in 0..4{
+                tmp_bytes[j] = tmp[j];
+            }
+            let tmp_scalar = Scalar::from_bits(tmp_bytes);            
+            let (x_i, r_i) = self.get_opening(i, verifier_challenge_indices[i]);
+            agg = agg + tmp_scalar * x_i;
+            agg_rand = agg_rand + tmp_scalar * r_i;
         }
-        else{
-            return 0;        
-        }
+
+        return (agg, agg_rand);
+        
     }
 
     pub fn clear_openings(&mut self){

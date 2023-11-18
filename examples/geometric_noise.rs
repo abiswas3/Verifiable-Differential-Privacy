@@ -1,12 +1,13 @@
 // use core::num;
 
-use curve25519_dalek::{ristretto::RistrettoPoint, scalar::Scalar};
+use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::constants;
 // use sha3::digest::typenum::Pow;
 // use ss::generic_commitments::Commitment;
 // use ss::participants::Board;
 extern crate dp_client as ss;
 use rand::Rng;
+use ss::generic_commitments::Commitment;
 
 fn main() {
 
@@ -43,7 +44,17 @@ fn main() {
         for i in 0..precision_bits{                        
             bit_coms.push(dist_geom_com[i].or_proofs[verifier_challenge_indices[i]].com);                    
         }        
-        verifier.binary_to_exp(bit_coms);    
+
+
+        for i in 0..precision_bits{
+            server.get_opening(i, verifier_challenge_indices[i]);
+        }
+        let geom_noise_com = verifier.binary_to_exp(bit_coms);    
+        let (geom_x, geom_r) = server.geometric_opening(verifier_challenge_indices);
+
+        assert_eq!(verifier.com.commit(geom_x, geom_r), geom_noise_com);
+
+        
     }
     
     println!();

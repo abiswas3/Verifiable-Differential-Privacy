@@ -44,7 +44,7 @@ fn main() {
     
         let challenge_idx = rand::thread_rng().gen_range(0..k);        
         let tmp = server.get_opening(opening_idx, challenge_idx);
-        print!("{} ", tmp);
+        print!("{:?} ", tmp);
         
     }
     
