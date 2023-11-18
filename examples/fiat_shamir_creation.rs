@@ -1,8 +1,8 @@
-use curve25519_dalek::{ristretto::RistrettoPoint};
+use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::constants;
 use ss::generic_commitments::Commitment;
 extern crate dp_client as ss;
-use std::time::{Instant};
+use std::time::Instant;
 
 fn main(){
 
@@ -12,8 +12,8 @@ fn main(){
 
     // Clients send input to servers while publicly committing to input
     let client = ss::participants::Client::new(num_shares, g, h);
-    let n_b = 262144;
-    // let n_b = 1;
+    // let n_b = 262144;
+    let n_b = 256;
     let now = Instant::now();
     for _ in 0..n_b{        
         let r = client.com.sample_randomness();
