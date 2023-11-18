@@ -21,6 +21,9 @@ openssl = "0.10"
 time = "*"
 curve25519-dalek = "3"
 sha3 = "*"
+bulletproofs = "*"
+merlin = "*"
+curve25519-dalek-ng = "*"
 
 [dev-dependencies]
 criterion = "0.4"
