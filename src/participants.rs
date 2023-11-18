@@ -1,19 +1,41 @@
-use crate::generic_commitments::{CurveCommitment};
+use crate::generic_commitments::CurveCommitment;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 // use num_integer::Roots;
-use crate::sigma_ff::{ProofScalar};
+use crate::sigma_ff::ProofScalar;
 // use crate::generic_commitments::CurveCommitment;
 use sha3::{Digest, Sha3_256};
 use rand_core::OsRng;
+use coinflip::flip;
 
 pub struct Board {
     pub g: RistrettoPoint,
-    pub h: RistrettoPoint
+    pub h: RistrettoPoint,
+    pub com: CurveCommitment
 
 }
 
 impl Board {
+
+    pub fn new(g: RistrettoPoint, h: RistrettoPoint)->Board{
+
+        let com = CurveCommitment{g, h};    
+        Self {g: g, h: h, com: com} 
+    }
+
+    pub fn binary_to_exp(&self, commitments: Vec<RistrettoPoint>)->RistrettoPoint{
+
+        let n = commitments.len();
+        // let r_zero = Scalar::zero();
+        let base: i32 = 2; // an explicit type is required
+
+        for i in 0..n{
+            // let mut tmp_bytes: [u8; 32] = [0; 32];            
+            let tmp: u128 = base.pow(i as u32) as u128;
+            println!("{}", tmp);
+        }
+        return self.g;
+    }
 
     pub fn verify(&self, transcript: &ProofScalar) -> bool {
 
@@ -75,14 +97,37 @@ pub struct Server{
     pub num_shares: usize,
     pub g: RistrettoPoint,
     pub h: RistrettoPoint,
-    pub com: CurveCommitment}
+    pub com: CurveCommitment,
+    openings: Vec<Vec<(Scalar, Scalar)>>
+}
+
+pub struct DistBernoulliProof{
+    pub or_proofs: Vec<ProofScalar>,
+    pub aggregate: Scalar
+}
+
 
 impl Server{
 
     pub fn new(num_shares: usize, g: RistrettoPoint, h: RistrettoPoint)->Server{
 
         let com = CurveCommitment{g, h};    
-        Self { num_shares: num_shares, g: g, h: h, com: com } 
+        Self { num_shares: num_shares, g: g, h: h, com: com, openings:Vec::new() } 
+    }
+
+    pub fn get_opening(&self, opening_idx: usize, challenge_idx:usize)->u8{
+
+        let (tmp, _) = self.openings[opening_idx][challenge_idx];
+        if tmp == Scalar::one(){
+            return  1;
+        }
+        else{
+            return 0;        
+        }
+    }
+
+    pub fn clear_openings(&mut self){
+        self.openings = Vec::new();
     }
 
     pub fn get_random_value(&self)->Scalar{
@@ -92,5 +137,60 @@ impl Server{
         return r;
     }
 
+    pub fn distributional_geometric_com(&mut self, precision_bits: usize, l: usize, k:usize)->Vec<DistBernoulliProof>{
+
+        let mut coin_coms = Vec::new();
+        for _ in 0..precision_bits{
+            // do the computation baed on l and k and do this.
+            coin_coms.push(self.distributional_commitment_bernoulli(l, k));
+        }
+        return coin_coms;        
+    }
+
+    pub fn distributional_commitment_bernoulli(&mut self, l: usize, k:usize)->DistBernoulliProof{
+
+        let mut private_openings: Vec<(Scalar, Scalar)>= Vec::new();
+        let mut proof_transcripts : Vec<ProofScalar> = Vec::new();    
+        let mut count_ones = 0;    
+        let mut count_zeroes = 0;
+        let mut aggregate_rand: Scalar = Scalar::zero();
+        for _ in 0..k{    
+            // Prover commits to a bit
+            let r = self.get_random_value();
+
+            let b;    
+            // All ones done
+            if count_ones == l{
+                b = false;
+            }
+            // All zeroes done
+            else if count_zeroes == k-l {
+                b = true;
+            }
+            // Flip uniformm
+            else{
+                b = flip();
+            }
+            
+            let transcript;            
+            if b{
+                transcript = self.com.create_proof_1(r);
+                private_openings.push((Scalar::one(), r));
+                count_ones +=1;
+            }
+            else{
+                transcript = self.com.create_proof_0(r);
+                private_openings.push((Scalar::zero(), r));
+                count_zeroes +=1;
+            }
+
+            aggregate_rand += r;            
+            proof_transcripts.push(transcript);
+        }
+
+    self.openings.push(private_openings);
+    return  DistBernoulliProof{or_proofs: proof_transcripts, aggregate: aggregate_rand};
+            
+    }
     
 }

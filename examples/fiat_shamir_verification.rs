@@ -13,7 +13,7 @@ fn main(){
 
     // Clients send input to servers while publicly committing to input
     let client = ss::participants::Client::new(num_shares, g, h);
-    let verifier = ss::participants::Board{g, h};
+    let verifier = ss::participants::Board::new(g, h);
     let n_b = 256;
     // let n_b = 8;
 

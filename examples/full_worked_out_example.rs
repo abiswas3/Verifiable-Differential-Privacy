@@ -39,12 +39,12 @@ fn main(){
     
 
     let server = ss::participants::Server::new(num_shares, g, h);
-    let verifier = ss::participants::Board{g, h};
+    let verifier = ss::participants::Board::new(g, h);
 
     let n_b = 100;
 
     let mut private_bits: Vec<(Scalar, Scalar)>= Vec::new();
-    let mut coms_to_bits : Vec<RistrettoPoint> = Vec::new();    
+    let mut coms_to_bits : Vec<RistrettoPoint> = Vec::new();
     for _ in 0..n_b{
 
         // Prover commits to a bit

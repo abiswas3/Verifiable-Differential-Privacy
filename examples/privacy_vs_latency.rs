@@ -31,7 +31,7 @@ fn main(){
     }
 
     println!();
-    let verifier = ss::participants::Board{g, h};
+    let verifier = ss::participants::Board::new(g, h);
     for i in 0..private_coins.len(){
         let n_b = private_coins[i];
         let mut proofs: Vec<ProofScalar> = Vec::new();

@@ -3,7 +3,7 @@ use curve25519_dalek::scalar::Scalar;
 // use rand::{rngs::StdRng, RngCore, SeedableRng};
 use rand_core::OsRng;
 use sha3::{Digest, Sha3_256};
-use crate::sigma_ff::{ProofScalar};
+use crate::sigma_ff::ProofScalar;
 // use crate::converters::u32_to_bytes;
 
 pub trait Commitment<X, Y>{
@@ -63,11 +63,10 @@ impl CurveCommitment{
     }
     
 
-    pub fn create_proof_1(&self)->ProofScalar{
+    pub fn create_proof_1(&self, rand: Scalar)->ProofScalar{
 
         // create FIAT shamir proof for when the secret is 0
         // let mut hasher = Sha3_256::new();
-        let rand: Scalar = self.sample_randomness();
         let com = self.commit(Scalar::one(), rand);
 
         let v0 = self.sample_randomness();
