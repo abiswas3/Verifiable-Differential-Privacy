@@ -8,11 +8,12 @@ use sha3::{Digest, Sha3_256};
 use rand_core::OsRng;
 use coinflip::flip;
 
+use crate::consants::MGRAIN;
+
 pub struct Board {
     pub g: RistrettoPoint,
     pub h: RistrettoPoint,
     pub com: CurveCommitment
-
 }
 
 impl Board {
@@ -75,36 +76,13 @@ impl Board {
     
 }
 
-pub struct Client{
-    pub num_shares: usize,
-    pub g: RistrettoPoint,
-    pub h: RistrettoPoint,
-    pub com: CurveCommitment
-}
-
-impl Client{
-
-    pub fn new(num_shares: usize, g: RistrettoPoint, h: RistrettoPoint)->Client{
-
-        let com = CurveCommitment{g, h};    
-        Self {num_shares: num_shares, g: g, h: h, com: com} 
-    }
-
-    pub fn send_input_to_sever(&self)->(Scalar, Scalar){
-
-        // This should be 1 or 0 but it doesn't matter for this script
-        let x = Scalar::one();
-        let mut csprng = OsRng;
-        let r: Scalar = Scalar::random(&mut csprng);
-        return (x, r);
-    }
-}
 pub struct Server{
     pub num_shares: usize,
     pub g: RistrettoPoint,
     pub h: RistrettoPoint,
     pub com: CurveCommitment,
-    openings: Vec<Vec<(Scalar, Scalar)>>
+    openings: Vec<Vec<(Scalar, Scalar)>>,
+    pub m_grain: [f64; MGRAIN]
 }
 
 pub struct DistBernoulliProof{
@@ -117,14 +95,33 @@ impl Server{
 
     pub fn new(num_shares: usize, g: RistrettoPoint, h: RistrettoPoint)->Server{
 
-        let com = CurveCommitment{g, h};    
-        Self { num_shares: num_shares, g: g, h: h, com: com, openings:Vec::new() } 
+        let com = CurveCommitment{g, h};
+        let mut m_grain = [0.0; MGRAIN];
+        for i in 0..MGRAIN{
+            m_grain[i] = (i as f64)/(MGRAIN as f64);
+        }        
+        Self { num_shares: num_shares, g: g, h: h, com: com, openings:Vec::new(), m_grain } 
     }
 
     pub fn get_opening(&self, opening_idx: usize, challenge_idx:usize)->(Scalar, Scalar){
 
         return self.openings[opening_idx][challenge_idx];        
 
+    }
+
+    pub fn get_approximate_probability(&self, prob: f64)->usize{
+
+        let mut min_index = MGRAIN - 1;
+        let mut min_value: f64 = 1.0;
+        for i in 0..MGRAIN{
+            let tmp = (prob - self.m_grain[i]).abs();
+            if tmp < min_value{
+                min_index = i;
+                min_value = tmp;
+            }
+        }
+
+        return min_index;
     }
 
     pub fn geometric_opening(&self, verifier_challenge_indices: Vec<usize>)->(Scalar, Scalar){
@@ -134,7 +131,7 @@ impl Server{
 
         let mut agg = Scalar::zero();
         let mut agg_rand = Scalar::zero();
-        for i in 1..n{
+        for i in 0..n{
             let mut tmp_bytes: [u8; 32] = [0; 32];            
             let tmp = base.pow(i as u32).to_ne_bytes();
             for j in 0..4{
@@ -142,10 +139,13 @@ impl Server{
             }
             let tmp_scalar = Scalar::from_bits(tmp_bytes);            
             let (x_i, r_i) = self.get_opening(i, verifier_challenge_indices[i]);
+            
             agg = agg + tmp_scalar * x_i;
             agg_rand = agg_rand + tmp_scalar * r_i;
+            
+            
         }
-
+        
         return (agg, agg_rand);
         
     }
@@ -161,11 +161,27 @@ impl Server{
         return r;
     }
 
-    pub fn distributional_geometric_com(&mut self, precision_bits: usize, l: usize, k:usize)->Vec<DistBernoulliProof>{
+    pub fn get_bit_prob(&self, base_prob:f64, bit_index:usize)->f64{
+
+        let mut num = 1.0;
+        for _ in 0..2*bit_index{
+           num = num*(1.0 - base_prob);
+        }
+        let den = num + 1.0;
+
+        return num/den;
+    }
+
+    pub fn distributional_geometric_com(&mut self, precision_bits: usize, base_prob: f64)->Vec<DistBernoulliProof>{
+
 
         let mut coin_coms = Vec::new();
-        for _ in 0..precision_bits{
-            // do the computation baed on l and k and do this.
+        for bit_index in 0..precision_bits{
+            
+            let prob = self.get_bit_prob(base_prob, bit_index); // This is the true prob of picking the bit
+            let k = MGRAIN;
+            let l = self.get_approximate_probability(prob); // l/k is the approximate M-Grain estimation
+            // println!("True Prob for Bit j:{} Approx: {}", prob, self.m_grain[l]);
             coin_coms.push(self.distributional_commitment_bernoulli(l, k));
         }
         return coin_coms;        
@@ -215,6 +231,30 @@ impl Server{
     self.openings.push(private_openings);
     return  DistBernoulliProof{or_proofs: proof_transcripts, aggregate: aggregate_rand};
             
+    }    
+}
+
+pub struct Client{
+    pub num_shares: usize,
+    pub g: RistrettoPoint,
+    pub h: RistrettoPoint,
+    pub com: CurveCommitment
+}
+
+impl Client{
+
+    pub fn new(num_shares: usize, g: RistrettoPoint, h: RistrettoPoint)->Client{
+
+        let com = CurveCommitment{g, h};    
+        Self {num_shares: num_shares, g: g, h: h, com: com} 
     }
-    
+
+    pub fn send_input_to_sever(&self)->(Scalar, Scalar){
+
+        // This should be 1 or 0 but it doesn't matter for this script
+        let x = Scalar::one();
+        let mut csprng = OsRng;
+        let r: Scalar = Scalar::random(&mut csprng);
+        return (x, r);
+    }
 }

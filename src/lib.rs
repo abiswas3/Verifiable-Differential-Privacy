@@ -1,7 +1,7 @@
 #[cfg(test)]
 extern crate rand;
 
-
+pub mod consants;
 pub mod verifiable_client;
 pub mod prio;
 pub mod poplar;
